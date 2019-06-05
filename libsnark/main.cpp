@@ -20,6 +20,9 @@
 using namespace libff;
 using namespace libsnark;
 
+const multi_exp_method method = multi_exp_method_bos_coster;
+// const multi_exp_method method = multi_exp_method_BDLO12;
+
 void write_mnt4_fq(FILE* output, Fq<mnt4753_pp> x) {
   fwrite((void *) x.mont_repr.data, libff::mnt4753_q_limbs * sizeof(mp_size_t), 1, output);
 }
@@ -135,7 +138,6 @@ int main(int argc, const char * argv[])
     ppT::init_public_params();
 
     auto parameters = fopen(argv[2], "r");
-    printf("par: %s\n", argv[2]);
 
     size_t d = read_size_t(parameters);
     size_t m = read_size_t(parameters);
@@ -182,8 +184,6 @@ int main(int argc, const char * argv[])
 
     fclose(parameters);
 
-    printf("0\n");
-
     auto inputs = fopen(argv[3], "r");
     std::vector<F> w(m+1);
     for (size_t i = 0; i < m+1; ++i) {
@@ -192,13 +192,11 @@ int main(int argc, const char * argv[])
     F r = read_mnt4_fr(inputs);
     fclose(inputs);
 
-    printf("1\n");
-
     const size_t chunks = omp_get_max_threads();
 
     libff::G1<ppT> proof_A = multi_exp_with_mixed_addition<G1<ppT>,
                                                            Fr<ppT>,
-                                                           multi_exp_method_BDLO12>(
+                                                           method>(
         A.begin(),
         A.begin() + m + 1,
         w.begin(),
@@ -207,31 +205,12 @@ int main(int argc, const char * argv[])
 
     libff::G1<ppT> proof_L = multi_exp_with_mixed_addition<G1<ppT>,
                                                            Fr<ppT>,
-                                                           multi_exp_method_BDLO12>(
+                                                           method>(
         L.begin(),
         L.end(),
         w.begin() + 2,
         w.begin() + m + 1,
         chunks);
-
-    /*
-    libff::G1<ppT> proof_B1 = multi_exp_with_mixed_addition<G1<ppT>,
-                                                           Fr<ppT>,
-                                                           multi_exp_method_BDLO12>(
-        B1.begin(),
-        B1.begin() + m + 1,
-        w.begin(),
-        w.begin() + m + 1,
-        chunks);
-
-    libff::G2<ppT> proof_B2 = multi_exp_with_mixed_addition<G2<ppT>,
-                                                           Fr<ppT>,
-                                                           multi_exp_method_BDLO12>(
-        B2.begin(),
-        B2.begin() + m + 1,
-        w.begin(),
-        w.begin() + m + 1,
-        chunks); */
 
     std::vector<knowledge_commitment<libff::G2<ppT>, libff::G1<ppT> >> B_query0;
     for (size_t i = 0; i < B1.size(); ++i) {
@@ -243,7 +222,7 @@ int main(int argc, const char * argv[])
     knowledge_commitment<G2<ppT>, G1<ppT> > BB = kc_multi_exp_with_mixed_addition<G2<ppT>,
                                                                                              G1<ppT>,
                                                                                              Fr<ppT>,
-                                                                                             multi_exp_method_BDLO12>(
+                                                                                             method>(
         B_query,
         0,
         m + 1,
@@ -255,8 +234,8 @@ int main(int argc, const char * argv[])
     libff::G2<ppT> proof_B2 = BB.g;
 
     F d1 = F::random_element();
-    F d2 = d1;
-    F d3 = d1;
+    F d2 = F::random_element();
+    F d3 = F::random_element();
 
     // Now to compute the array H
 
@@ -316,13 +295,21 @@ int main(int argc, const char * argv[])
 
     libff::G1<ppT> proof_H = multi_exp_with_mixed_addition<G1<ppT>,
                                                            Fr<ppT>,
-                                                           multi_exp_method_BDLO12>(
+                                                           method>(
         T.begin(),
         T.begin() + (d - 1),
         coefficients_for_H.begin(),
         coefficients_for_H.begin() + (d - 1),
         chunks);
 
+
+    auto output = fopen("outputs", "w");
+    write_mnt4_g1(output, proof_A);
+    write_mnt4_g1(output, proof_B1);
+    write_mnt4_g2(output, proof_B2);
+    write_mnt4_g1(output, proof_L);
+    write_mnt4_g1(output, proof_H);
+    fclose(output);
 
     proof_A.print();
     proof_B1.print();
