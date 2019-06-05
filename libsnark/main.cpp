@@ -20,8 +20,8 @@
 using namespace libff;
 using namespace libsnark;
 
-const multi_exp_method method = multi_exp_method_bos_coster;
-// const multi_exp_method method = multi_exp_method_BDLO12;
+const multi_exp_method method = multi_exp_method_BDLO12;
+// const multi_exp_method method = multi_exp_method_bos_coster;
 
 void write_mnt4_fq(FILE* output, Fq<mnt4753_pp> x) {
   fwrite((void *) x.mont_repr.data, libff::mnt4753_q_limbs * sizeof(mp_size_t), 1, output);
