@@ -1,6 +1,7 @@
 #include <cassert>
 #include <cstdio>
-
+#include <fstream>
+#include <fstream>
 #include <libff/common/rng.hpp>
 #include <libff/common/profiling.hpp>
 #include <libff/common/utils.hpp>
@@ -70,24 +71,36 @@ Fqe<mnt6753_pp> read_mnt6_fq3(FILE* input) {
 G1<mnt4753_pp> read_mnt4_g1(FILE* input) {
   Fq<mnt4753_pp> x = read_mnt4_fq(input);
   Fq<mnt4753_pp> y = read_mnt4_fq(input);
+  if (y == Fq<mnt4753_pp>::zero()) {
+    return G1<mnt4753_pp>::zero();
+  }
   return G1<mnt4753_pp>(x, y, Fq<mnt4753_pp>::one());
 }
 
 G1<mnt6753_pp> read_mnt6_g1(FILE* input) {
   Fq<mnt6753_pp> x = read_mnt6_fq(input);
   Fq<mnt6753_pp> y = read_mnt6_fq(input);
+  if (y == Fq<mnt6753_pp>::zero()) {
+    return G1<mnt6753_pp>::zero();
+  }
   return G1<mnt6753_pp>(x, y, Fq<mnt6753_pp>::one());
 }
 
 G2<mnt4753_pp> read_mnt4_g2(FILE* input) {
   Fqe<mnt4753_pp> x = read_mnt4_fq2(input);
   Fqe<mnt4753_pp> y = read_mnt4_fq2(input);
+  if (y == Fqe<mnt4753_pp>::zero()) {
+    return G2<mnt4753_pp>::zero();
+  }
   return G2<mnt4753_pp>(x, y, Fqe<mnt4753_pp>::one());
 }
 
 G2<mnt6753_pp> read_mnt6_g2(FILE* input) {
   Fqe<mnt6753_pp> x = read_mnt6_fq3(input);
   Fqe<mnt6753_pp> y = read_mnt6_fq3(input);
+  if (y == Fqe<mnt6753_pp>::zero()) {
+    return G2<mnt6753_pp>::zero();
+  }
   return G2<mnt6753_pp>(x, y, Fqe<mnt6753_pp>::one());
 }
 
@@ -134,186 +147,300 @@ int main(int argc, const char * argv[])
 {
     srand(time(NULL));
     setbuf(stdout, NULL);
-
     ppT::init_public_params();
 
-    auto parameters = fopen(argv[2], "r");
+    // B
+    r1cs_gg_ppzksnark_verification_key<ppT> vk;
+    std::ifstream vks;
+    vks.open("vk");
+    vks >> vk;
+    vks.close();
 
-    size_t d = read_size_t(parameters);
-    size_t m = read_size_t(parameters);
+    r1cs_gg_ppzksnark_proving_key<ppT> pk;
 
-    std::vector<F> ca(d+1, F::zero());
-    for (size_t i = 0; i < d+1; ++i) {
-      ca[i] = read_mnt4_fr(parameters); 
+    std::ifstream parameters;
+    parameters.open("parameters");
+    parameters >> pk;
+
+    auto params = fopen("params", "r");
+    const size_t d = read_size_t(params);
+    const size_t d_plus_1 = d + 1;
+    const size_t m = read_size_t(params);
+
+    const size_t primary_input_size = 1;
+
+    std::vector<G1<ppT>> A;
+    for (size_t i = 0; i <= m; ++i) {
+      A.emplace_back(read_mnt4_g1(params));
     }
 
-    std::vector<F> cb(d+1, F::zero());
-    for (size_t i = 0; i < d+1; ++i) {
-      cb[i] = read_mnt4_fr(parameters); 
+    std::vector<G1<ppT>> B1;
+    for (size_t i = 0; i <= m; ++i) {
+      B1.emplace_back(read_mnt4_g1(params));
     }
 
-    std::vector<F> cc(d+1, F::zero());
-    for (size_t i = 0; i < d+1; ++i) {
-      cc[i] = read_mnt4_fr(parameters); 
+    std::vector<G2<ppT>> B2;
+    for (size_t i = 0; i <= m; ++i) {
+      B2.emplace_back(read_mnt4_g2(params));
     }
 
-    std::vector<G1<ppT>> A(m + 1, G1<ppT>::zero());
-    for (size_t i = 0; i < m+1; ++i) {
-      A[i] = read_mnt4_g1(parameters); 
+    std::vector<
+      knowledge_commitment<libff::G2<ppT>, libff::G1<ppT> >> Bv;
+    for (size_t i = 0; i <= m; ++i) {
+      Bv.emplace_back(
+        knowledge_commitment<libff::G2<ppT>, libff::G1<ppT> >(B2[i], B1[i]));
     }
 
-    std::vector<G1<ppT>> B1(m + 1, G1<ppT>::zero());
-    for (size_t i = 0; i < m+1; ++i) {
-      B1[i] = read_mnt4_g1(parameters); 
-    }
-
-    std::vector<G2<ppT>> B2(m + 1, G2<ppT>::zero());
-    for (size_t i = 0; i < m+1; ++i) {
-      B2[i] = read_mnt4_g2(parameters); 
-    }
-
-    std::vector<G1<ppT>> L(m - 1, G1<ppT>::zero());
+    std::vector<G1<ppT>> L;
     for (size_t i = 0; i < m-1; ++i) {
-      L[i] = read_mnt4_g1(parameters); 
+      L.emplace_back(read_mnt4_g1(params));
     }
 
-    std::vector<G1<ppT>> T(d, G1<ppT>::zero());
+    std::vector<G1<ppT>> H;
     for (size_t i = 0; i < d; ++i) {
-      T[i] = read_mnt4_g1(parameters); 
+      H.emplace_back(read_mnt4_g1(params));
     }
 
-    fclose(parameters);
+    knowledge_commitment_vector<libff::G2<ppT>, libff::G1<ppT> > B(std::move(Bv));
 
-    auto inputs = fopen(argv[3], "r");
+    fclose(params);
+    assert( m == pk.constraint_system.num_variables() );
+    auto inputs = fopen("input", "r");
     std::vector<F> w(m+1);
     for (size_t i = 0; i < m+1; ++i) {
       w[i] = read_mnt4_fr(inputs);
     }
-    F r = read_mnt4_fr(inputs);
+
+    std::vector<F> ca;
+    for (size_t i = 0; i < d_plus_1; ++i) {
+      ca.emplace_back(read_mnt4_fr(inputs));
+    }
+    std::vector<F> cb;
+    for (size_t i = 0; i < d_plus_1; ++i) {
+      cb.emplace_back(read_mnt4_fr(inputs));
+    }
+    std::vector<F> cc;
+    for (size_t i = 0; i < d_plus_1; ++i) {
+      cc.emplace_back(read_mnt4_fr(inputs));
+    }
+
     fclose(inputs);
+    std::vector<F> primary_input(
+        w.begin() + 1,
+        w.begin() + 1 + pk.constraint_system.num_inputs());
+    std::vector<F> auxiliary_input(
+        w.begin() + 1 + pk.constraint_system.num_inputs(),
+        w.end() );
 
-    const size_t chunks = omp_get_max_threads();
-
-    libff::G1<ppT> proof_A = multi_exp_with_mixed_addition<G1<ppT>,
-                                                           Fr<ppT>,
-                                                           method>(
-        A.begin(),
-        A.begin() + m + 1,
-        w.begin(),
-        w.begin() + m + 1,
-        chunks);
-
-    libff::G1<ppT> proof_L = multi_exp_with_mixed_addition<G1<ppT>,
-                                                           Fr<ppT>,
-                                                           method>(
-        L.begin(),
-        L.end(),
-        w.begin() + 2,
-        w.begin() + m + 1,
-        chunks);
-
-    std::vector<knowledge_commitment<libff::G2<ppT>, libff::G1<ppT> >> B_query0;
-    for (size_t i = 0; i < B1.size(); ++i) {
-      B_query0.emplace_back(knowledge_commitment<libff::G2<ppT>, libff::G1<ppT> >(B2[i], B1[i]));
+    for (size_t i = 0; i < primary_input.size(); ++i) {
+      primary_input[i].print();
     }
 
-    knowledge_commitment_vector<libff::G2<ppT>, libff::G1<ppT> > B_query(std::move(B_query0));
+    libff::enter_block("Call to r1cs_gg_ppzksnark_prover");
 
-    knowledge_commitment<G2<ppT>, G1<ppT> > BB = kc_multi_exp_with_mixed_addition<G2<ppT>,
-                                                                                             G1<ppT>,
-                                                                                             Fr<ppT>,
-                                                                                             method>(
-        B_query,
-        0,
-        m + 1,
-        w.begin(),
-        w.begin() + m + 1,
-        chunks);
+    libff::enter_block("Compute the polynomial H");
+    // Begin witness map
+    auto d1 = Fr<ppT>::zero();
+    auto d2 = Fr<ppT>::zero();
+    auto d3 = Fr<ppT>::zero();
+    libff::enter_block("Call to r1cs_to_qap_witness_map");
 
-    libff::G1<ppT> proof_B1 = BB.h;
-    libff::G2<ppT> proof_B2 = BB.g;
+    /* sanity check */
 
-    F d1 = F::random_element();
-    F d2 = F::random_element();
-    F d3 = F::random_element();
+    r1cs_constraint_system<F> cs = pk.constraint_system;
+    assert(cs.is_satisfied(primary_input, auxiliary_input));
 
-    // Now to compute the array H
+    const std::shared_ptr<libfqfft::evaluation_domain<F> > domain = libfqfft::get_evaluation_domain<F>(cs.num_constraints() + cs.num_inputs() + 1);
 
-    std::vector<F> H;
-    bool err;
-    libfqfft::basic_radix2_domain<F> domain(d+1, err);
-    assert (!err);
-    domain.iFFT(ca);
-    domain.iFFT(cb);
+    r1cs_variable_assignment<F> full_variable_assignment = primary_input;
+    full_variable_assignment.insert(full_variable_assignment.end(), auxiliary_input.begin(), auxiliary_input.end());
 
-    // ZK patch
-    std::vector<F> coefficients_for_H(domain.m+1, F::zero());
-#ifdef MULTICORE
-#pragma omp parallel for
-#endif
-    /* add coefficients of the polynomial (d2*A + d1*B - d3) + d1*d2*Z */
-    for (size_t i = 0; i < domain.m; ++i)
-    {
-        coefficients_for_H[i] = d2*ca[i] + d1*cb[i];
+    for (size_t i = 0; i < primary_input_size + auxiliary_input.size(); ++i) {
+      if (full_variable_assignment[i] != w[1+i]) {
+        printf("Bad!! %d\n", i);
+        full_variable_assignment[i].print();
+        w[i+1].print();
+        assert(false);
+      }
     }
-    coefficients_for_H[0] -= d3;
-    domain.add_poly_Z(d1*d2, coefficients_for_H);
 
-    domain.cosetFFT(ca, F::multiplicative_generator);
-    domain.cosetFFT(cb, F::multiplicative_generator);
+    libff::enter_block("Compute coefficients of polynomial A");
+    domain->iFFT(ca);
+    libff::leave_block("Compute coefficients of polynomial A");
 
+    libff::enter_block("Compute coefficients of polynomial B");
+    domain->iFFT(cb);
+    libff::leave_block("Compute coefficients of polynomial B");
+
+    std::vector<F> coefficients_for_H(domain->m+1, F::zero());
+
+    libff::enter_block("Compute evaluation of polynomial A on set T");
+    domain->cosetFFT(ca, F::multiplicative_generator);
+    libff::leave_block("Compute evaluation of polynomial A on set T");
+
+    libff::enter_block("Compute evaluation of polynomial B on set T");
+    domain->cosetFFT(cb, F::multiplicative_generator);
+    libff::leave_block("Compute evaluation of polynomial B on set T");
+
+    libff::enter_block("Compute evaluation of polynomial H on set T");
     std::vector<F> &H_tmp = ca; // can overwrite ca because it is not used later
 #ifdef MULTICORE
 #pragma omp parallel for
 #endif
-    for (size_t i = 0; i < domain.m; ++i)
+    for (size_t i = 0; i < domain->m; ++i)
     {
         H_tmp[i] = ca[i]*cb[i];
     }
-    std::vector<F>().swap(cb); // destroy aB
-    domain.iFFT(cc);
-    domain.cosetFFT(cc, F::multiplicative_generator);
+    std::vector<F>().swap(cb); // destroy cb
+
+    libff::enter_block("Compute coefficients of polynomial C");
+    domain->iFFT(cc);
+    libff::leave_block("Compute coefficients of polynomial C");
+
+    libff::enter_block("Compute evaluation of polynomial C on set T");
+    domain->cosetFFT(cc, F::multiplicative_generator);
+    libff::leave_block("Compute evaluation of polynomial C on set T");
 
 #ifdef MULTICORE
 #pragma omp parallel for
 #endif
-    for (size_t i = 0; i < domain.m; ++i)
+    for (size_t i = 0; i < domain->m; ++i)
     {
         H_tmp[i] = (H_tmp[i]-cc[i]);
     }
 
-    domain.divide_by_Z_on_coset(H_tmp);
-    domain.icosetFFT(H_tmp, F::multiplicative_generator);
+    libff::enter_block("Divide by Z on set T");
+    domain->divide_by_Z_on_coset(H_tmp);
+    libff::leave_block("Divide by Z on set T");
 
+    libff::leave_block("Compute evaluation of polynomial H on set T");
+
+    libff::enter_block("Compute coefficients of polynomial H");
+    domain->icosetFFT(H_tmp, F::multiplicative_generator);
+    libff::leave_block("Compute coefficients of polynomial H");
+
+    libff::enter_block("Compute sum of H and ZK-patch");
 #ifdef MULTICORE
 #pragma omp parallel for
 #endif
-    for (size_t i = 0; i < domain.m; ++i)
+    for (size_t i = 0; i < domain->m; ++i)
     {
-        coefficients_for_H[i] += H_tmp[i];
+        coefficients_for_H[i] = H_tmp[i];
     }
+    libff::leave_block("Compute sum of H and ZK-patch");
 
-    libff::G1<ppT> proof_H = multi_exp_with_mixed_addition<G1<ppT>,
-                                                           Fr<ppT>,
-                                                           method>(
-        T.begin(),
-        T.begin() + (d - 1),
-        coefficients_for_H.begin(),
-        coefficients_for_H.begin() + (d - 1),
+    libff::leave_block("Call to r1cs_to_qap_witness_map");
+
+    const qap_witness<libff::Fr<ppT> > qap_wit = qap_witness<F>(cs.num_variables(),
+                               domain->m,
+                               cs.num_inputs(),
+                               d1,
+                               d2,
+                               d3,
+                               full_variable_assignment,
+                               std::move(coefficients_for_H));
+
+
+
+    // End witness map
+
+    /* We are dividing degree 2(d-1) polynomial by degree d polynomial
+       and not adding a PGHR-style ZK-patch, so our H is degree d-2 */
+    assert(!qap_wit.coefficients_for_H[d-1].is_zero());
+    assert(qap_wit.coefficients_for_H[d].is_zero());
+    assert(qap_wit.coefficients_for_H[d+1].is_zero());
+    libff::leave_block("Compute the polynomial H");
+
+    /* Choose two random field elements for prover zero-knowledge. */
+    const libff::Fr<ppT> r = libff::Fr<ppT>::random_element();
+    const libff::Fr<ppT> s = libff::Fr<ppT>::random_element();
+
+#ifdef MULTICORE
+    const size_t chunks = omp_get_max_threads(); // to override, set OMP_NUM_THREADS env var or call omp_set_num_threads()
+#else
+    const size_t chunks = 1;
+#endif
+
+    libff::enter_block("Compute the proof");
+
+    libff::enter_block("Compute evaluation to A-query", false);
+    // TODO: sort out indexing
+    libff::Fr_vector<ppT> const_padded_assignment(1, libff::Fr<ppT>::one());
+    const_padded_assignment.insert(const_padded_assignment.end(), qap_wit.coefficients_for_ABCs.begin(), qap_wit.coefficients_for_ABCs.end());
+
+    libff::G1<ppT> evaluation_At = libff::multi_exp_with_mixed_addition<libff::G1<ppT>,
+                                                                        libff::Fr<ppT>,
+                                                                        method>(
+        A.begin(),
+        A.begin() + m + 1,
+        const_padded_assignment.begin(),
+        const_padded_assignment.begin() + m + 1,
         chunks);
+    libff::leave_block("Compute evaluation to A-query", false);
 
+    libff::enter_block("Compute evaluation to B-query", false);
+    knowledge_commitment<libff::G2<ppT>, libff::G1<ppT> > evaluation_Bt = kc_multi_exp_with_mixed_addition<libff::G2<ppT>,
+                                                                                                           libff::G1<ppT>,
+                                                                                                           libff::Fr<ppT>,
+                                                                                                           method>(
+        B,
+        0,
+        m + 1,
+        const_padded_assignment.begin(),
+        const_padded_assignment.begin() + m + 1,
+        chunks);
+    libff::leave_block("Compute evaluation to B-query", false);
 
-    auto output = fopen("outputs", "w");
-    write_mnt4_g1(output, proof_A);
-    write_mnt4_g1(output, proof_B1);
-    write_mnt4_g2(output, proof_B2);
-    write_mnt4_g1(output, proof_L);
-    write_mnt4_g1(output, proof_H);
-    fclose(output);
+    libff::enter_block("Compute evaluation to H-query", false);
+    libff::G1<ppT> evaluation_Ht = libff::multi_exp<libff::G1<ppT>,
+                                                    libff::Fr<ppT>,
+                                                    method>(
+        H.begin(),
+        H.begin() + d,
+        qap_wit.coefficients_for_H.begin(),
+        qap_wit.coefficients_for_H.begin() + d,
+        chunks);
+    libff::leave_block("Compute evaluation to H-query", false);
 
-    proof_A.print();
-    proof_B1.print();
-    proof_B2.print();
-    proof_L.print();
-    proof_H.print();
+    libff::enter_block("Compute evaluation to L-query", false);
+    libff::G1<ppT> evaluation_Lt = libff::multi_exp_with_mixed_addition<libff::G1<ppT>,
+                                                                        libff::Fr<ppT>,
+                                                                        method>(
+        L.begin(),
+        L.end(),
+        const_padded_assignment.begin() + primary_input_size + 1,
+        const_padded_assignment.begin() + m + 1,
+        chunks);
+    libff::leave_block("Compute evaluation to L-query", false);
+
+    /* A = alpha + sum_i(a_i*A_i(t)) + r*delta */
+    libff::G1<ppT> g1_A = pk.alpha_g1 + evaluation_At + r * pk.delta_g1;
+
+    /* B = beta + sum_i(a_i*B_i(t)) + s*delta */
+    libff::G1<ppT> g1_B = pk.beta_g1 + evaluation_Bt.h + s * pk.delta_g1;
+    libff::G2<ppT> g2_B = pk.beta_g2 + evaluation_Bt.g + s * pk.delta_g2;
+
+    /* C = sum_i(a_i*((beta*A_i(t) + alpha*B_i(t) + C_i(t)) + H(t)*Z(t))/delta) + A*s + r*b - r*s*delta */
+    libff::G1<ppT> g1_C = evaluation_Ht + evaluation_Lt + s *  g1_A + r * g1_B - (r * s) * pk.delta_g1;
+
+    libff::leave_block("Compute the proof");
+
+    libff::leave_block("Call to r1cs_gg_ppzksnark_prover");
+
+    r1cs_gg_ppzksnark_proof<ppT> proof = r1cs_gg_ppzksnark_proof<ppT>(std::move(g1_A), std::move(g2_B), std::move(g1_C));
+    proof.print_size();
+
+    assert (r1cs_gg_ppzksnark_verifier_strong_IC<ppT>(vk, primary_input, proof) );
+
+    r1cs_gg_ppzksnark_proof<ppT> proof1=
+      r1cs_gg_ppzksnark_prover<ppT>(
+          pk, 
+          primary_input,
+          auxiliary_input);
+    assert (r1cs_gg_ppzksnark_verifier_strong_IC<ppT>(vk, primary_input, proof1) );
+
+    printf("YO\n");
+    proof1.print_size();
+
+    return 0;
 }
