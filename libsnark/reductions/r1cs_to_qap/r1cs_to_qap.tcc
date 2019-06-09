@@ -236,9 +236,6 @@ qap_witness<FieldT> r1cs_to_qap_witness_map(const r1cs_constraint_system<FieldT>
     }
     libff::leave_block("Compute evaluation of polynomials A, B on set S");
 
-    printf("aA size: %d\n", aA.size());
-    printf("aA max nonzero index: max(%d, %d)\n", cs.num_constraints() - 1, cs.num_inputs() + cs.num_constraints());
-    printf("aA[%d] =\n", cs.num_inputs() + cs.num_constraints());
     aA[cs.num_inputs() + cs.num_constraints()].print();
 
     libff::enter_block("Compute coefficients of polynomial A");
