@@ -184,12 +184,13 @@ int main(int argc, const char * argv[])
       B2.emplace_back(read_mnt4_g2(params));
     }
 
+    /*
     std::vector<
       knowledge_commitment<libff::G2<ppT>, libff::G1<ppT> >> Bv;
     for (size_t i = 0; i <= m; ++i) {
       Bv.emplace_back(
         knowledge_commitment<libff::G2<ppT>, libff::G1<ppT> >(B2[i], B1[i]));
-    }
+    } */
 
     std::vector<G1<ppT>> L;
     for (size_t i = 0; i < m-1; ++i) {
@@ -201,7 +202,9 @@ int main(int argc, const char * argv[])
       H.emplace_back(read_mnt4_g1(params));
     }
 
+    /*
     knowledge_commitment_vector<libff::G2<ppT>, libff::G1<ppT> > B(std::move(Bv));
+    */
 
     fclose(params);
     assert( m == pk.constraint_system.num_variables() );
@@ -240,47 +243,20 @@ int main(int argc, const char * argv[])
 
     libff::enter_block("Compute the polynomial H");
     // Begin witness map
-    auto d1 = Fr<ppT>::zero();
-    auto d2 = Fr<ppT>::zero();
-    auto d3 = Fr<ppT>::zero();
     libff::enter_block("Call to r1cs_to_qap_witness_map");
 
-    /* sanity check */
-
     r1cs_constraint_system<F> cs = pk.constraint_system;
-    assert(cs.is_satisfied(primary_input, auxiliary_input));
 
     const std::shared_ptr<libfqfft::evaluation_domain<F> > domain = libfqfft::get_evaluation_domain<F>(cs.num_constraints() + cs.num_inputs() + 1);
 
     r1cs_variable_assignment<F> full_variable_assignment = primary_input;
     full_variable_assignment.insert(full_variable_assignment.end(), auxiliary_input.begin(), auxiliary_input.end());
 
-    for (size_t i = 0; i < primary_input_size + auxiliary_input.size(); ++i) {
-      if (full_variable_assignment[i] != w[1+i]) {
-        printf("Bad!! %d\n", i);
-        full_variable_assignment[i].print();
-        w[i+1].print();
-        assert(false);
-      }
-    }
-
-    libff::enter_block("Compute coefficients of polynomial A");
     domain->iFFT(ca);
-    libff::leave_block("Compute coefficients of polynomial A");
-
-    libff::enter_block("Compute coefficients of polynomial B");
     domain->iFFT(cb);
-    libff::leave_block("Compute coefficients of polynomial B");
 
-    std::vector<F> coefficients_for_H(domain->m+1, F::zero());
-
-    libff::enter_block("Compute evaluation of polynomial A on set T");
     domain->cosetFFT(ca, F::multiplicative_generator);
-    libff::leave_block("Compute evaluation of polynomial A on set T");
-
-    libff::enter_block("Compute evaluation of polynomial B on set T");
     domain->cosetFFT(cb, F::multiplicative_generator);
-    libff::leave_block("Compute evaluation of polynomial B on set T");
 
     libff::enter_block("Compute evaluation of polynomial H on set T");
     std::vector<F> &H_tmp = ca; // can overwrite ca because it is not used later
@@ -293,13 +269,9 @@ int main(int argc, const char * argv[])
     }
     std::vector<F>().swap(cb); // destroy cb
 
-    libff::enter_block("Compute coefficients of polynomial C");
     domain->iFFT(cc);
-    libff::leave_block("Compute coefficients of polynomial C");
 
-    libff::enter_block("Compute evaluation of polynomial C on set T");
     domain->cosetFFT(cc, F::multiplicative_generator);
-    libff::leave_block("Compute evaluation of polynomial C on set T");
 
 #ifdef MULTICORE
 #pragma omp parallel for
@@ -309,17 +281,13 @@ int main(int argc, const char * argv[])
         H_tmp[i] = (H_tmp[i]-cc[i]);
     }
 
-    libff::enter_block("Divide by Z on set T");
     domain->divide_by_Z_on_coset(H_tmp);
-    libff::leave_block("Divide by Z on set T");
 
     libff::leave_block("Compute evaluation of polynomial H on set T");
 
-    libff::enter_block("Compute coefficients of polynomial H");
     domain->icosetFFT(H_tmp, F::multiplicative_generator);
-    libff::leave_block("Compute coefficients of polynomial H");
 
-    libff::enter_block("Compute sum of H and ZK-patch");
+    std::vector<F> coefficients_for_H(domain->m+1, F::zero());
 #ifdef MULTICORE
 #pragma omp parallel for
 #endif
@@ -327,28 +295,16 @@ int main(int argc, const char * argv[])
     {
         coefficients_for_H[i] = H_tmp[i];
     }
-    libff::leave_block("Compute sum of H and ZK-patch");
 
     libff::leave_block("Call to r1cs_to_qap_witness_map");
-
-    const qap_witness<libff::Fr<ppT> > qap_wit = qap_witness<F>(cs.num_variables(),
-                               domain->m,
-                               cs.num_inputs(),
-                               d1,
-                               d2,
-                               d3,
-                               full_variable_assignment,
-                               std::move(coefficients_for_H));
-
-
 
     // End witness map
 
     /* We are dividing degree 2(d-1) polynomial by degree d polynomial
        and not adding a PGHR-style ZK-patch, so our H is degree d-2 */
-    assert(!qap_wit.coefficients_for_H[d-1].is_zero());
-    assert(qap_wit.coefficients_for_H[d].is_zero());
-    assert(qap_wit.coefficients_for_H[d+1].is_zero());
+    assert(!coefficients_for_H[d-1].is_zero());
+    assert(coefficients_for_H[d].is_zero());
+    assert(coefficients_for_H[d+1].is_zero());
     libff::leave_block("Compute the polynomial H");
 
     /* Choose two random field elements for prover zero-knowledge. */
@@ -363,10 +319,9 @@ int main(int argc, const char * argv[])
 
     libff::enter_block("Compute the proof");
 
-    libff::enter_block("Compute evaluation to A-query", false);
     // TODO: sort out indexing
     libff::Fr_vector<ppT> const_padded_assignment(1, libff::Fr<ppT>::one());
-    const_padded_assignment.insert(const_padded_assignment.end(), qap_wit.coefficients_for_ABCs.begin(), qap_wit.coefficients_for_ABCs.end());
+    const_padded_assignment.insert(const_padded_assignment.end(), full_variable_assignment.begin(), full_variable_assignment.end());
 
     libff::G1<ppT> evaluation_At = libff::multi_exp_with_mixed_addition<libff::G1<ppT>,
                                                                         libff::Fr<ppT>,
@@ -376,9 +331,26 @@ int main(int argc, const char * argv[])
         const_padded_assignment.begin(),
         const_padded_assignment.begin() + m + 1,
         chunks);
-    libff::leave_block("Compute evaluation to A-query", false);
 
-    libff::enter_block("Compute evaluation to B-query", false);
+    libff::G1<ppT> evaluation_Bt1 = libff::multi_exp_with_mixed_addition<libff::G1<ppT>,
+                                                                        libff::Fr<ppT>,
+                                                                        method>(
+        B1.begin(),
+        B1.begin() + m + 1,
+        const_padded_assignment.begin(),
+        const_padded_assignment.begin() + m + 1,
+        chunks);
+    libff::G2<ppT> evaluation_Bt2 = libff::multi_exp_with_mixed_addition<libff::G2<ppT>,
+                                                                        libff::Fr<ppT>,
+                                                                        method>(
+        B2.begin(),
+        B2.begin() + m + 1,
+        const_padded_assignment.begin(),
+        const_padded_assignment.begin() + m + 1,
+        chunks);
+
+    knowledge_commitment<libff::G2<ppT>, libff::G1<ppT> > evaluation_Bt (evaluation_Bt2, evaluation_Bt1);
+    /*
     knowledge_commitment<libff::G2<ppT>, libff::G1<ppT> > evaluation_Bt = kc_multi_exp_with_mixed_addition<libff::G2<ppT>,
                                                                                                            libff::G1<ppT>,
                                                                                                            libff::Fr<ppT>,
@@ -388,21 +360,17 @@ int main(int argc, const char * argv[])
         m + 1,
         const_padded_assignment.begin(),
         const_padded_assignment.begin() + m + 1,
-        chunks);
-    libff::leave_block("Compute evaluation to B-query", false);
+        chunks);*/
 
-    libff::enter_block("Compute evaluation to H-query", false);
     libff::G1<ppT> evaluation_Ht = libff::multi_exp<libff::G1<ppT>,
                                                     libff::Fr<ppT>,
                                                     method>(
         H.begin(),
         H.begin() + d,
-        qap_wit.coefficients_for_H.begin(),
-        qap_wit.coefficients_for_H.begin() + d,
+        coefficients_for_H.begin(),
+        coefficients_for_H.begin() + d,
         chunks);
-    libff::leave_block("Compute evaluation to H-query", false);
 
-    libff::enter_block("Compute evaluation to L-query", false);
     libff::G1<ppT> evaluation_Lt = libff::multi_exp_with_mixed_addition<libff::G1<ppT>,
                                                                         libff::Fr<ppT>,
                                                                         method>(
@@ -411,7 +379,8 @@ int main(int argc, const char * argv[])
         const_padded_assignment.begin() + primary_input_size + 1,
         const_padded_assignment.begin() + m + 1,
         chunks);
-    libff::leave_block("Compute evaluation to L-query", false);
+
+    // The competition prover ends here.
 
     /* A = alpha + sum_i(a_i*A_i(t)) + r*delta */
     libff::G1<ppT> g1_A = pk.alpha_g1 + evaluation_At + r * pk.delta_g1;
