@@ -202,18 +202,6 @@ target_link_libraries(
 )
 
 add_executable(
-  generate_inputs
-  EXCLUDE_FROM_ALL
-
-  generate_inputs.cpp
-)
-target_link_libraries(
-  generate_inputs
-
-  snark
-)
-
-add_executable(
   main
   EXCLUDE_FROM_ALL
 
