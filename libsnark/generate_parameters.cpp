@@ -21,7 +21,9 @@ using namespace libff;
 const bool debug = false;
 
 template<typename ppT>
-int generate_paramaters(char* params_path, char* input_path)
+int generate_paramaters(
+    int log2_d,
+    char* params_path, char* input_path)
 {
     srand(time(NULL));
     setbuf(stdout, NULL);
@@ -30,7 +32,7 @@ int generate_paramaters(char* params_path, char* input_path)
 
     const size_t primary_input_size = 1;
 
-    size_t d_plus_1 = 1 << 14;
+    size_t d_plus_1 = 1 << log2_d;
     size_t d = d_plus_1 - 1;
 
     r1cs_example<Fr<ppT>> example = generate_r1cs_example_with_field_input<Fr<ppT>>(d-1, 1);
@@ -122,6 +124,6 @@ int generate_paramaters(char* params_path, char* input_path)
 
 int main(int argc, const char * argv[])
 {
-  generate_paramaters<mnt4753_pp>("MNT4753-parameters", "MNT4753-input");
-  generate_paramaters<mnt6753_pp>("MNT6753-parameters", "MNT6753-input");
+  generate_paramaters<mnt4753_pp>(20, "MNT4753-parameters", "MNT4753-input");
+  generate_paramaters<mnt6753_pp>(15, "MNT6753-parameters", "MNT6753-input");
 }
