@@ -9,22 +9,18 @@ using [libsnark](README-libsnark.md).
 ./build.sh
 ```
 
-#### Generate parameters
+#### Generate parameters and inputs
 ``` bash
 ./generate_parameters
 ```
 
-#### Generate Inputs
-``` bash
-./generate_inputs
-```
-
 ### Run
 ``` bash
-./main compute parameters inputs outputs
+./main MNT4753 compute MNT4753-parameters MNT4753-input MNT4753-output
+./main MNT6753 compute MNT6753-parameters MNT6753-input MNT6753-output
 ```
 
 ### Check results
 ``` bash
-sha256sum outputs
+sha256sum MNT4753-output MNT6753-output
 ```
