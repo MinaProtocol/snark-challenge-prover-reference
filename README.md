@@ -3,9 +3,12 @@ This directory contains a reference CPU implementation of  the
 Groth16 prover
 using [libsnark](README-libsnark.md).
 
+See the [cuda-fixnum README](./cuda-fixnum/README.md) for getting started
+with CUDA GPU programming.
+
 #### Dependancies
 
-The code should compile and run on Ubuntu 18.04 with the following dependancies installed:
+The code should compile and run on Ubuntu 18.04 with the following dependencies installed:
 
 ``` bash
 sudo apt-get install -y build-essential \
@@ -21,7 +24,7 @@ sudo apt-get install -y build-essential \
 ```
 
 
-Building on MacOS is not reccomended as CUDA support is harder to use. (Apple mostly ships with AMD.)
+Building on MacOS is not recommended as CUDA support is harder to use. (Apple mostly ships with AMD.)
 
 
 #### Build
