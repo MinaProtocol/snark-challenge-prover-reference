@@ -3,12 +3,16 @@ This directory contains a reference CPU implementation of  the
 Groth16 prover
 using [libsnark](README-libsnark.md).
 
-See the [cuda-fixnum README](./cuda-fixnum/README.md) for getting started
-with CUDA GPU programming.
+The build system is already set up to integrate CUDA. `cuda-fixnum/main.cu`
+will be built and linked against `libsnark/main.cu`. Currently only one
+wrapper function is exposed, `do_fixnum_example`. Define the CUDA functions you
+need in `cuda-fixnum/main.cu`, expose wrapper functions for them, and call them
+as needed from the prover code.
 
 #### Dependancies
 
-The code should compile and run on Ubuntu 18.04 with the following dependencies installed:
+The code should compile and run on Ubuntu 18.04 with the following dependencies installed.
+You will also need the CUDA toolkit.
 
 ``` bash
 sudo apt-get install -y build-essential \
