@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 
-project (libsnark)
+project (libsnark CXX CUDA)
 
 set(
   CURVE
@@ -250,4 +250,5 @@ endif(CCACHE_FOUND)
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND})
 
 add_subdirectory(depends)
+add_subdirectory(cuda-fixnum)
 add_subdirectory(libsnark)

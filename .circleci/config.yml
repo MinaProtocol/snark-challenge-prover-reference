@@ -1,0 +1,17 @@
+# WARNING: config.yml file is generated from config.yml.jinja
+---
+version: 3
+jobs:
+    build:
+        resource_class: large
+        docker:
+            - image: nvida/cuda:10.1-devel
+        steps:
+            - checkout
+            - run: apt-get install -y build-essential cmake git libomp-dev libgmp3-dev libprocps-dev python-markdown libboost-all-dev libssl-dev pkg-config
+            - run: ./build.sh
+workflows:
+    version: 2
+    main_workflow:
+        jobs:
+            - build
