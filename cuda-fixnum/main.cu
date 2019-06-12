@@ -127,7 +127,7 @@ void write_mnt_fq(uint8_t* fq, FILE* outputs) {
   fwrite((void *) fq, io_bytes_per_elem * sizeof(uint8_t), 1, outputs);
 }
 
-int do_fixnum_example(char *inputs_file, char *outputs_file) {
+int do_fixnum_example(const char *inputs_file, const char *outputs_file) {
   setbuf(stdout, NULL);
 
   // mnt4_q
