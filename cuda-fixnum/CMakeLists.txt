@@ -26,7 +26,8 @@ add_executable(cuda_bench bench/bench.cu)
 target_compile_definitions(cuda_bench PUBLIC -DNDEBUG)
 target_link_libraries(cuda_bench -lstdc++)
 
-add_library(cuda_main main.cu)
+add_library(cuda_main STATIC main.cu)
+set_property(TARGET cuda_main PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 
 # test-suite
 find_package(GTest)
