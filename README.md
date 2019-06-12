@@ -39,8 +39,9 @@ Building on MacOS is not recommended as CUDA support is harder to use. (Apple mo
 
 ### Run
 ``` bash
-./main MNT4753 compute MNT4753-parameters MNT4753-input MNT4753-output
-./main MNT6753 compute MNT6753-parameters MNT6753-input MNT6753-output
+./main MNT4753 compute CPU MNT4753-parameters MNT4753-input MNT4753-output
+./main MNT6753 compute CPU MNT6753-parameters MNT6753-input MNT6753-output
+./main MNT4753 compute GPU ./cuda-fixnum/inputs gpu-output
 ```
 
 ### Check results

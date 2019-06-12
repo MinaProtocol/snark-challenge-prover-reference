@@ -1,4 +1,3 @@
-cmake_minimum_required(VERSION 3.8)
 project(cuda-fixnum CXX CUDA)
 
 set(CMAKE_CXX_STANDARD 14)
@@ -26,6 +25,8 @@ include_directories(src)
 add_executable(cuda_bench bench/bench.cu)
 target_compile_definitions(cuda_bench PUBLIC -DNDEBUG)
 target_link_libraries(cuda_bench -lstdc++)
+
+add_library(cuda_main main.cu)
 
 # test-suite
 find_package(GTest)

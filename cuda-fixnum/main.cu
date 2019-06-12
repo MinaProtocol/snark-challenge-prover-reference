@@ -127,7 +127,7 @@ void write_mnt_fq(uint8_t* fq, FILE* outputs) {
   fwrite((void *) fq, io_bytes_per_elem * sizeof(uint8_t), 1, outputs);
 }
 
-int main(int argc, char* argv[]) {
+int do_fixnum_example(char *inputs_file, char *outputs_file) {
   setbuf(stdout, NULL);
 
   // mnt4_q
@@ -136,8 +136,8 @@ int main(int argc, char* argv[]) {
   // mnt6_q
   uint8_t mnt6_modulus[bytes_per_elem] = {1,0,0,64,226,118,7,217,79,58,161,15,23,153,160,78,151,87,0,63,188,129,195,214,164,58,153,52,118,249,223,185,54,38,33,41,148,202,235,62,155,169,89,200,40,92,108,178,157,247,90,161,217,36,209,153,141,237,160,232,37,185,253,7,115,216,151,108,249,232,183,94,237,175,143,91,80,151,249,183,173,205,226,238,34,144,34,16,17,196,146,45,198,196,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
-  auto inputs = fopen(argv[2], "r");
-  auto outputs = fopen(argv[3], "w");
+  auto inputs = fopen(inputs_file, "r");
+  auto outputs = fopen(outputs_file, "w");
 
   size_t n;
 

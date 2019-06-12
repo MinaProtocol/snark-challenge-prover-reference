@@ -207,10 +207,12 @@ add_executable(
 
   main.cpp
 )
+
 target_link_libraries(
   main
 
   snark
+  cuda_main
 )
 
 add_executable(
