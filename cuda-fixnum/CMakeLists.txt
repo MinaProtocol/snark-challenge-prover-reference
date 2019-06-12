@@ -23,9 +23,9 @@ set(CMAKE_CUDA_FLAGS_DEBUG "-g -G")
 include_directories(src)
 
 # bench
-add_executable(bench bench/bench.cu)
-target_compile_definitions(bench PUBLIC -DNDEBUG)
-target_link_libraries(bench -lstdc++)
+add_executable(cuda_bench bench/bench.cu)
+target_compile_definitions(cuda_bench PUBLIC -DNDEBUG)
+target_link_libraries(cuda_bench -lstdc++)
 
 # test-suite
 find_package(GTest)
