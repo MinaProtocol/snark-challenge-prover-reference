@@ -205,7 +205,7 @@ add_executable(
   main
   EXCLUDE_FROM_ALL
 
-  main.cpp
+  main.cu
 )
 
 target_link_libraries(
