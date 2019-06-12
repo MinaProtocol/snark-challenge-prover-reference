@@ -18,6 +18,9 @@
 
 #include <libfqfft/evaluation_domain/domains/basic_radix2_domain.hpp>
 
+// declare the wrapper functions from cuda-fixnum/main.cu
+int do_fixnum_example(char *inputs_file, char *outputs_file);
+
 using namespace libff;
 using namespace libsnark;
 
