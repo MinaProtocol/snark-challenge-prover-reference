@@ -1,4 +1,7 @@
-# Test input
+# Build directory
+build
+
+# # Test input
 tests/add_*
 tests/sub_*
 tests/mul_*
