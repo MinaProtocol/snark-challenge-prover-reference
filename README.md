@@ -34,6 +34,11 @@ Building on MacOS is not reccomended as CUDA support is harder to use. (Apple mo
 ./generate_parameters
 ```
 
+When iterating on your implementation for correctness (and not performance)
+smaller constraint systems are fine. In that case, `./generate_parameters fast`
+will give you smaller parameters that don't take as long to generate or
+prove with.
+
 ### Run
 ``` bash
 ./main MNT4753 compute MNT4753-parameters MNT4753-input MNT4753-output
