@@ -9,10 +9,15 @@
         "region": "us-west-2",
         "access_key": "{{user `aws_access_key`}}",
         "secret_key": "{{user `aws_secret_key`}}",
-        "source_ami": "ami-0b1ff2ff515194ce7",
+        "source_ami": "ami-0196ce5c34425a906",
         "instance_type": "p3.2xlarge",
         "ssh_username": "ubuntu",
-        "ami_name": "coda-snark-challenge-base-{{isotime \"2006-01-02-0304\"}}"
+        "ami_name": "coda-snark-challenge-base-{{isotime \"2006-01-02-0304\"}}",
+        "ami_block_device_mappings": [ {
+            "device_name": "/dev/sda1",
+            "volume_size": 50,
+            "delete_on_termination": true
+        } ]
       }
     ],
     "provisioners": [
