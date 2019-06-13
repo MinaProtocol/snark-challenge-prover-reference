@@ -201,31 +201,16 @@ target_link_libraries(
   snark
 )
 
-find_package(CUDA REQUIRED)
-set(CUDA_ARCH_LIST Auto CACHE LIST
-    "List of CUDA architectures (e.g. Pascal, Volta, etc) or \
-     compute capability versions (6.1, 7.0, etc) to generate code for. \
-     Set to Auto for automatic detection (default)."
-)
-cuda_select_nvcc_arch_flags(CUDA_ARCH_FLAGS ${CUDA_ARCH_LIST})
-string(REPLACE ";" " " CUDA_ARCH_FLAGS_SPACES "${CUDA_ARCH_FLAGS}")
-
-string(APPEND CMAKE_CUDA_FLAGS " ${CUDA_ARCH_FLAGS_SPACES}")
-string(APPEND CMAKE_CUDA_FLAGS " -Xcompiler -Wall,-Wextra")
-set(CMAKE_CUDA_FLAGS_DEBUG "-g -G")
-
 add_executable(
   main
   EXCLUDE_FROM_ALL
 
-  main.cu
+  main.cpp
 )
-
 target_link_libraries(
   main
 
   snark
-  cuda_main
 )
 
 add_executable(
@@ -858,31 +843,31 @@ add_test(
   COMMAND test_sha256_gadget
 )
 
-add_dependencies(libsnark_check common_routing_algorithms_test)
-add_dependencies(libsnark_check gadgetlib1_simple_test)
-add_dependencies(libsnark_check gadgetlib1_r1cs_ppzksnark_verifier_gadget_test)
-add_dependencies(libsnark_check gadgetlib1_r1cs_gg_ppzksnark_verifier_gadget_test)
-add_dependencies(libsnark_check gadgetlib2_adapters_test)
-add_dependencies(libsnark_check gadgetlib2_constraint_test)
-add_dependencies(libsnark_check gadgetlib2_gadget_test)
-add_dependencies(libsnark_check gadgetlib2_integration_test)
-add_dependencies(libsnark_check gadgetlib2_protoboard_test)
-add_dependencies(libsnark_check gadgetlib2_variable_test)
-add_dependencies(libsnark_check relations_qap_test)
-add_dependencies(libsnark_check relations_sap_test)
-add_dependencies(libsnark_check relations_ssp_test)
-add_dependencies(libsnark_check zk_proof_systems_bacs_ppzksnark_test)
-add_dependencies(libsnark_check zk_proof_systems_r1cs_ppzksnark_test)
-add_dependencies(libsnark_check zk_proof_systems_r1cs_se_ppzksnark_test)
-add_dependencies(libsnark_check zk_proof_systems_r1cs_gg_ppzksnark_test)
-add_dependencies(libsnark_check zk_proof_systems_r1cs_bg_ppzksnark_test)
-add_dependencies(libsnark_check zk_proof_systems_ram_ppzksnark_test)
-add_dependencies(libsnark_check zk_proof_systems_tbcs_ppzksnark_test)
-add_dependencies(libsnark_check zk_proof_systems_uscs_ppzksnark_test)
-add_dependencies(libsnark_check test_knapsack_gadget)
-add_dependencies(libsnark_check test_merkle_tree_gadgets)
-add_dependencies(libsnark_check test_set_commitment_gadget)
-add_dependencies(libsnark_check test_sha256_gadget)
+add_dependencies(check common_routing_algorithms_test)
+add_dependencies(check gadgetlib1_simple_test)
+add_dependencies(check gadgetlib1_r1cs_ppzksnark_verifier_gadget_test)
+add_dependencies(check gadgetlib1_r1cs_gg_ppzksnark_verifier_gadget_test)
+add_dependencies(check gadgetlib2_adapters_test)
+add_dependencies(check gadgetlib2_constraint_test)
+add_dependencies(check gadgetlib2_gadget_test)
+add_dependencies(check gadgetlib2_integration_test)
+add_dependencies(check gadgetlib2_protoboard_test)
+add_dependencies(check gadgetlib2_variable_test)
+add_dependencies(check relations_qap_test)
+add_dependencies(check relations_sap_test)
+add_dependencies(check relations_ssp_test)
+add_dependencies(check zk_proof_systems_bacs_ppzksnark_test)
+add_dependencies(check zk_proof_systems_r1cs_ppzksnark_test)
+add_dependencies(check zk_proof_systems_r1cs_se_ppzksnark_test)
+add_dependencies(check zk_proof_systems_r1cs_gg_ppzksnark_test)
+add_dependencies(check zk_proof_systems_r1cs_bg_ppzksnark_test)
+add_dependencies(check zk_proof_systems_ram_ppzksnark_test)
+add_dependencies(check zk_proof_systems_tbcs_ppzksnark_test)
+add_dependencies(check zk_proof_systems_uscs_ppzksnark_test)
+add_dependencies(check test_knapsack_gadget)
+add_dependencies(check test_merkle_tree_gadgets)
+add_dependencies(check test_set_commitment_gadget)
+add_dependencies(check test_sha256_gadget)
 
 # TODO (howardwu): Resolve runtime on targets:
 # gadgetlib1_fooram_test, zk_proof_systems_r1cs_mp_ppzkpcd_test, zk_proof_systems_r1cs_sp_ppzkpcd_test, zk_proof_systems_ram_zksnark_test
@@ -903,7 +888,7 @@ add_dependencies(libsnark_check test_sha256_gadget)
 #   NAME zk_proof_systems_ram_zksnark_test
 #   COMMAND zk_proof_systems_ram_zksnark_test
 # )
-# add_dependencies(libsnark_check gadgetlib1_fooram_test)
-# add_dependencies(libsnark_check zk_proof_systems_r1cs_mp_ppzkpcd_test)
-# add_dependencies(libsnark_check zk_proof_systems_r1cs_sp_ppzkpcd_test)
-# add_dependencies(libsnark_check zk_proof_systems_ram_zksnark_test)
+# add_dependencies(check gadgetlib1_fooram_test)
+# add_dependencies(check zk_proof_systems_r1cs_mp_ppzkpcd_test)
+# add_dependencies(check zk_proof_systems_r1cs_sp_ppzkpcd_test)
+# add_dependencies(check zk_proof_systems_ram_zksnark_test)

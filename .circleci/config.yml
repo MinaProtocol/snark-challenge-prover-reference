@@ -5,7 +5,7 @@ jobs:
     build:
         resource_class: large
         docker:
-            - image: nvida/cuda:10.1-devel
+            - image: ubuntu/xenial
         steps:
             - checkout
             - run: apt-get install -y build-essential cmake git libomp-dev libgmp3-dev libprocps-dev python-markdown libboost-all-dev libssl-dev pkg-config
