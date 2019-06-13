@@ -18,9 +18,6 @@
 
 #include <libfqfft/evaluation_domain/domains/basic_radix2_domain.hpp>
 
-// declare the wrapper functions from cuda-fixnum/main.cu
-int do_fixnum_example(const char *inputs_file, const char *outputs_file);
-
 using namespace libff;
 using namespace libsnark;
 
@@ -240,25 +237,19 @@ int main(int argc, const char * argv[])
   setbuf(stdout, NULL);
   std::string curve(argv[1]);
   std::string mode(argv[2]);
-  std::string device(argv[3]);
 
+  const char* params_path = argv[3];
+  const char* input_path = argv[4];
+  const char* output_path = argv[5];
 
-  if (device == "CPU") {
-    const char* params_path = argv[4];
-    const char* input_path = argv[5];
-    const char* output_path = argv[6];
-
-    if (curve == "MNT4753") {
-        if (mode == "compute") {
-        return run_prover<mnt4753_pp>(params_path, input_path, output_path);
-        }
-    } else if (curve == "MNT6753") {
-        if (mode == "compute") {
-        return run_prover<mnt6753_pp>(params_path, input_path, output_path);
-        }
+  if (curve == "MNT4753") {
+    if (mode == "compute") {
+      return run_prover<mnt4753_pp>(params_path, input_path, output_path);
     }
-  } else if (device == "GPU") {
-    do_fixnum_example(argv[4], argv[5]);
+  } else if (curve == "MNT6753") {
+    if (mode == "compute") {
+      return run_prover<mnt6753_pp>(params_path, input_path, output_path);
+    }
   }
 }
 
