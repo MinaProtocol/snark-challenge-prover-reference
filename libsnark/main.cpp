@@ -237,18 +237,23 @@ int main(int argc, const char * argv[])
   setbuf(stdout, NULL);
   std::string curve(argv[1]);
   std::string mode(argv[2]);
+  std::string device(argv[3]);
 
-  const char* params_path = argv[3];
-  const char* input_path = argv[4];
-  const char* output_path = argv[5];
+  const char* params_path = argv[4];
+  const char* input_path = argv[5];
+  const char* output_path = argv[6];
 
-  if (curve == "MNT4753") {
-    if (mode == "compute") {
-      return run_prover<mnt4753_pp>(params_path, input_path, output_path);
-    }
-  } else if (curve == "MNT6753") {
-    if (mode == "compute") {
-      return run_prover<mnt6753_pp>(params_path, input_path, output_path);
+  if (device != "CPU") {
+    fprintf(stderr, "non-CPU code isn't part of this reference!");
+  } else {
+    if (curve == "MNT4753") {
+      if (mode == "compute") {
+        return run_prover<mnt4753_pp>(params_path, input_path, output_path);
+      }
+    } else if (curve == "MNT6753") {
+      if (mode == "compute") {
+        return run_prover<mnt6753_pp>(params_path, input_path, output_path);
+      }
     }
   }
 }
