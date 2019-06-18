@@ -254,12 +254,7 @@ add_subdirectory(cuda-fixnum)
 add_subdirectory(libsnark)
 
 find_package(CUDA REQUIRED)
-set(CUDA_ARCH_LIST Auto CACHE LIST
-    "List of CUDA architectures (e.g. Pascal, Volta, etc) or \
-     compute capability versions (6.1, 7.0, etc) to generate code for. \
-     Set to Auto for automatic detection (default)."
-)
-cuda_select_nvcc_arch_flags(CUDA_ARCH_FLAGS ${CUDA_ARCH_LIST})
+cuda_select_nvcc_arch_flags(CUDA_ARCH_FLAGS Volta)
 string(REPLACE ";" " " CUDA_ARCH_FLAGS_SPACES "${CUDA_ARCH_FLAGS}")
 
 string(APPEND CMAKE_CUDA_FLAGS " ${CUDA_ARCH_FLAGS_SPACES}")
@@ -272,4 +267,4 @@ add_executable (
 
     cuda_prover_piecewise.cu
 )
-target_link_libraries(cuda_prover_piecewise cuda_main snark)
+target_link_libraries(cuda_prover_piecewise cuda_main prover_reference_functions)

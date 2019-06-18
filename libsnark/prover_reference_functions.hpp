@@ -2,38 +2,49 @@
 
 #include <vector>
 
-struct groth16_parameters_mnt4753;
+struct groth16_input_mnt4753;
 
 struct evaluation_domain_mnt4753;
 
 struct field_mnt4753;
 
-struct group_mnt4753;
+struct G1_mnt4753;
 
-void domain_iFFT_mnt4753(std::vector<field_mnt4753> &a);
+struct G2_mnt4753;
 
-void domain_cosetFFT_mnt4753(std::vector<field_mnt4753> &a);
+struct vector_Fr_mnt4753;
 
-void domain_icosetFFT_mnt4753(std::vector<field_mnt4753> &a);
+struct vector_G1_mnt4753;
 
-void domain_divide_by_Z_on_coset_mnt4753(std::vector<field_mnt4753> &a);
+struct vector_G2_mnt4753;
 
-void multiexp_mnt4753(std::vector<field_mnt4753>::const_iterator scalar_start, std::vector<group_mnt4753>::const_iterator g_start, size_t length);
+void domain_iFFT_mnt4753(evaluation_domain_mnt4753* domain, vector_Fr_mnt4753 *a);
 
-struct groth16_parameters_mnt6753;
+void domain_cosetFFT_mnt4753(evaluation_domain_mnt4753* domain, vector_Fr_mnt4753 *a);
 
-struct evaluation_domain_mnt6753;
+void domain_icosetFFT_mnt4753(evaluation_domain_mnt4753* domain, vector_Fr_mnt4753 *a);
 
-struct field_mnt6753;
+void domain_divide_by_Z_on_coset_mnt4753(evaluation_domain_mnt4753* domain, vector_Fr_mnt4753 *a);
 
-struct group_mnt6753;
+void multiexp_G1_mnt4753(vector_Fr_mnt4753 *scalar_start, vector_G1_mnt4753 *g_start, size_t length);
 
-void domain_iFFT_mnt6753(std::vector<field_mnt6753> &a);
+void multiexp_G2_mnt4753(vector_Fr_mnt4753 *scalar_start, vector_G2_mnt4753 *g_start, size_t length);
 
-void domain_cosetFFT_mnt6753(std::vector<field_mnt6753> &a);
+vector_Fr_mnt4753 *input_w(groth16_input_mnt4753* params);
+vector_Fr_mnt4753 *input_ca(groth16_input_mnt4753* params);
+vector_Fr_mnt4753 *input_cb(groth16_input_mnt4753* params);
+vector_Fr_mnt4753 *input_cc(groth16_input_mnt4753* params);
 
-void domain_icosetFFT_mnt6753(std::vector<field_mnt6753> &a);
+field_mnt4753 *input_r(groth16_input_mnt4753* params);
 
-void domain_divide_by_Z_on_coset_mnt6753(std::vector<field_mnt6753> &a);
+groth16_input_mnt4753 *read_input(const char *path);
 
-std::unique_ptr<group_mnt6753> multiexp_mnt6753(std::vector<field_mnt6753>::const_iterator scalar_start, std::vector<group_mnt6753>::const_iterator g_start, size_t length);
+vector_G1
+
+void delete_group_mnt4753(group_mnt4753 *a);
+void delete_vector_Fr_mnt4753(vector_Fr_mnt4753 *a);
+void delete_vector_G1_mnt4753(vector_G1_mnt4753 *a);
+void delete_vector_G2_mnt4753(vector_G2_mnt4753 *a);
+void delete_groth16_inputs_mnt4753(groth16_input_mnt4753 *a);
+void delete_T(T *a);
+
