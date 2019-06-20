@@ -11,7 +11,7 @@ set(CUDA_ARCH_LIST Auto CACHE LIST
      compute capability versions (6.1, 7.0, etc) to generate code for. \
      Set to Auto for automatic detection (default)."
 )
-cuda_select_nvcc_arch_flags(CUDA_ARCH_FLAGS ${CUDA_ARCH_LIST})
+cuda_select_nvcc_arch_flags(CUDA_ARCH_FLAGS Volta)
 string(REPLACE ";" " " CUDA_ARCH_FLAGS_SPACES "${CUDA_ARCH_FLAGS}")
 
 string(APPEND CMAKE_CUDA_FLAGS " ${CUDA_ARCH_FLAGS_SPACES}")
@@ -27,6 +27,7 @@ target_compile_definitions(cuda_bench PUBLIC -DNDEBUG)
 target_link_libraries(cuda_bench -lstdc++)
 
 add_library(cuda_main STATIC main.cu)
+target_include_directories(cuda_main PUBLIC src)
 set_property(TARGET cuda_main PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 
 # test-suite

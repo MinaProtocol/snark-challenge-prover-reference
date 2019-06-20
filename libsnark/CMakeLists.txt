@@ -217,6 +217,7 @@ target_link_libraries(
 add_library (
     prover_reference_functions STATIC
     prover_reference_functions.cpp
+    prover_reference_include/prover_reference_functions.hpp
 )
 
 target_link_libraries (
@@ -225,7 +226,7 @@ target_link_libraries (
     snark
 )
 
-install(FILES prover_reference_functions.hpp DESTINATION include)
+target_include_directories(prover_reference_functions PUBLIC prover_reference_include)
 
 add_executable(
   profile_routing_algorithms

@@ -1,45 +1,119 @@
+#include <string>
+
 #include <prover_reference_functions.hpp>
 
-// Overwrites 
-vector_Fr_mnt4753 compute_H_mnt4753(size_t d, 
-        vector_Fr_mnt4753 *ca,
-        vector_Fr_mnt4753 *cb,
-        vector_Fr_mnt4753 *cc) {
-    auto domain = get_evaluation_domain_mnt4753(d + 1);
+// cuda-fixnum includes
 
-    domain_iFFT_mnt4753(domain, ca);
-    domain_iFFT_mnt4753(domain, cb);
+#include <fixnum/warp_fixnum.cu>
+#include <array/fixnum_array.h>
+#include <functions/modexp.cu>
+#include <functions/multi_modexp.cu>
+#include <modnum/modnum_monty_redc.cu>
+#include <modnum/modnum_monty_cios.cu>
 
-    domain_cosetFFT_mnt4753(domain, ca);
-    domain_cosetFFT_mnt4753(domain, cb);
+// cuda-fixnum/main.cu has some example code. this declaration lets us run it.
+int do_fixnum_example(const char *inputs_file, const char *outputs_file);
+
+// template over the bundle of types and functions.
+// Overwrites ca!
+template<typename B>
+typename B::vector_Fr *compute_H(size_t d, 
+        typename B::vector_Fr *ca,
+        typename B::vector_Fr *cb,
+        typename B::vector_Fr *cc) {
+    auto domain = B::get_evaluation_domain(d + 1);
+
+    B::domain_iFFT(domain, ca);
+    B::domain_iFFT(domain, cb);
+
+    B::domain_cosetFFT(domain, ca);
+    B::domain_cosetFFT(domain, cb);
 
     // Use ca to store H
     auto H_tmp = ca;
 
-    size_t m = domain_get_m_mnt4753(domain);
-    for (size_t i = 0; i < m; i++) {
-        // H_tmp[i] *= cb[i]
-        vector_Fr_mnt4753_set_mul(H_tmp, cb, i);
-    }
-    delete_vector_Fr_mnt4753(cb);
+    size_t m = B::domain_get_m(domain);
+    // for i in 0 to m: H_tmp[i] *= cb[i]
+    B::vector_Fr_muleq(H_tmp, cb, m);
 
-    domain_iFFT_mnt4753(cc);
-    domain_cosetFFT_mnt4753(cc);
+    B::domain_iFFT(domain, cc);
+    B::domain_cosetFFT(domain, cc);
 
-    size_t m = domain_get_m_mnt4753(domain);
-    for (size_t i = 0; i < m; i++) {
-        // H_tmp[i] -= cc[i]
-        vector_Fr_mnt4753_set_sub(H_tmp, cc, i);
-    }
+    m = B::domain_get_m(domain);
 
-    domain_divide_by_Z_on_coset_mnt4753(H_tmp);
+    // for i in 0 to m: H_tmp[i] -= cb[i]
+    B::vector_Fr_subeq(H_tmp, cb, m);
 
-    domain_icosetFFT_mnt4753(H_tmp);
+    B::domain_divide_by_Z_on_coset(domain, H_tmp);
+
+    B::domain_icosetFFT(domain, H_tmp);
     
-    size_t m = domain_get_m_mnt4753(domain);
-    auto coefficients_for_H = vector_Fr_mnt4753_zeros(m+1);
+    m = B::domain_get_m(domain);
+    return B::vector_Fr_copy(H_tmp, m);
 }
+
+template<typename B>
+void run_prover(const char *params_path, const char *input_path, const char *output_path) {
+    B::init_public_params();
+
+    size_t primary_input_size = 1;
+
+    auto params = B::read_params(params_path);
+    auto input = B::read_input(input_path, params);
+
+    auto d = B::params_d(params);
+    auto coefficients_for_H = compute_H<B>(B::params_d(params), B::input_ca(input), B::input_cb(input), B::input_cc(input));
+
+    // Now the 5 multi-exponentiations
+    typename B::G1 *evaluation_At = B::multiexp_G1(B::input_w(input), B::params_A(params), B::params_m(params) + 1);
+    typename B::G1 *evaluation_Bt1 = B::multiexp_G1(B::input_w(input), B::params_B1(params), B::params_m(params) + 1);
+    typename B::G2 *evaluation_Bt2 = B::multiexp_G2(B::input_w(input), B::params_B2(params), B::params_m(params) + 1);
+    typename B::G1 *evaluation_Ht = B::multiexp_G1(coefficients_for_H, B::params_H(params), B::params_d(params));
+    typename B::G1 *evaluation_Lt = B::multiexp_G1(B::vector_Fr_offset(B::input_w(input), primary_input_size + 1), B::params_L(params), B::params_m(params) - 1);
+
+
+    auto scaled_Bt1 = B::G1_scale(B::input_r(input), evaluation_Bt1);
+    auto Lt1_plus_scaled_Bt1 = B::G1_add(evaluation_Lt, scaled_Bt1);
+    auto C = B::G1_add(evaluation_Ht, Lt1_plus_scaled_Bt1);
+
+    auto output = B::groth16_output_create(evaluation_At, evaluation_Bt2, C);
+    B::groth16_output_write(output, output_path);
+    
+    // free everything
+    B::delete_G1(evaluation_Bt1);
+    B::delete_G1(evaluation_Ht);
+    B::delete_G1(evaluation_Lt);
+    B::delete_G1(scaled_Bt1);
+    B::delete_G1(Lt1_plus_scaled_Bt1);
+    B::delete_vector_Fr(coefficients_for_H);
+    B::delete_groth16_input(input);
+    B::delete_groth16_params(params);
+    B::delete_groth16_output(output);
+}
+
 int main(int argc, char **argv) {
-    return 0;
+  setbuf(stdout, NULL);
+  std::string curve(argv[1]);
+  std::string mode(argv[2]);
+  std::string device(argv[3]); // this "device" arg 
+
+    const char* params_path = argv[4];
+    const char* input_path = argv[5];
+    const char* output_path = argv[6];
+  if (device == "CPU") {
+    if (curve == "MNT4753") {
+        if (mode == "compute") {
+            run_prover<mnt4753_libsnark>(params_path, input_path, output_path);
+        }
+    } else if (curve == "MNT6753") {
+        if (mode == "compute") {
+            run_prover<mnt6753_libsnark>(params_path, input_path, output_path);
+        }
+    }
+  } else if (device == "GPU") {
+    do_fixnum_example(argv[4], argv[5]);
+  }
+
+  return 0;
 }
 
