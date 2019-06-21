@@ -4,11 +4,9 @@
 
 class mnt4753_libsnark {
 public:
-    struct groth16_input;
+    class groth16_input;
 
-    struct groth16_params;
-
-    struct groth16_output;
+    class groth16_params;
 
     struct evaluation_domain;
 
@@ -71,19 +69,15 @@ public:
     static void delete_vector_G2(vector_G2 *a);
     static void delete_groth16_input(groth16_input *a);
     static void delete_groth16_params(groth16_params *a);
-    static void delete_groth16_output(groth16_output *a);
     static void delete_evaluation_domain(evaluation_domain *a);
 
-    static groth16_output *groth16_output_create(G1 *At, G2 *Bt2, G1 *C);
-    static void groth16_output_write(groth16_output *output, const char *output_path);
+    static void groth16_output_write(G1 *A, G2 *B, G1 *C, const char *output_path);
 };
 class mnt6753_libsnark {
 public:
-    struct groth16_input;
+    class groth16_input;
 
-    struct groth16_params;
-
-    struct groth16_output;
+    class groth16_params;
 
     struct evaluation_domain;
 
@@ -146,9 +140,7 @@ public:
     static void delete_vector_G2(vector_G2 *a);
     static void delete_groth16_input(groth16_input *a);
     static void delete_groth16_params(groth16_params *a);
-    static void delete_groth16_output(groth16_output *a);
     static void delete_evaluation_domain(evaluation_domain *a);
 
-    static groth16_output *groth16_output_create(G1 *At, G2 *Bt2, G1 *C);
-    static void groth16_output_write(groth16_output *output, const char *output_path);
+    static void groth16_output_write(G1 *A, G2 *B, G1 *C, const char *output_path);
 };

@@ -14,6 +14,8 @@
 // cuda-fixnum/main.cu has some example code. this declaration lets us run it.
 int do_fixnum_example(const char *inputs_file, const char *outputs_file);
 
+// This is where all the FFTs happen
+
 // template over the bundle of types and functions.
 // Overwrites ca!
 template<typename B>
@@ -76,8 +78,7 @@ void run_prover(const char *params_path, const char *input_path, const char *out
     auto Lt1_plus_scaled_Bt1 = B::G1_add(evaluation_Lt, scaled_Bt1);
     auto C = B::G1_add(evaluation_Ht, Lt1_plus_scaled_Bt1);
 
-    auto output = B::groth16_output_create(evaluation_At, evaluation_Bt2, C);
-    B::groth16_output_write(output, output_path);
+    B::groth16_output_write(evaluation_At, evaluation_Bt2, C, output_path);
     
     // free everything
     B::delete_G1(evaluation_Bt1);
@@ -88,7 +89,6 @@ void run_prover(const char *params_path, const char *input_path, const char *out
     B::delete_vector_Fr(coefficients_for_H);
     B::delete_groth16_input(input);
     B::delete_groth16_params(params);
-    B::delete_groth16_output(output);
 }
 
 int main(int argc, char **argv) {
