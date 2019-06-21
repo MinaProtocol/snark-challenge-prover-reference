@@ -188,7 +188,7 @@ mnt4753_libsnark::vector_Fr *
 mnt4753_libsnark::vector_Fr_copy(mnt4753_libsnark::vector_Fr *a,
                                  size_t length) {
   auto new_data = std::make_shared<std::vector<Fr<mnt4753_pp>>>(
-      std::vector<Fr<mnt4753_pp>>(a->data->begin(), a->data->begin() + length));
+      std::vector<Fr<mnt4753_pp>>(a->data->begin()+a->offset, a->data->begin() + a->offset+length));
   return new mnt4753_libsnark::vector_Fr{.data = new_data, .offset = 0};
 }
 
