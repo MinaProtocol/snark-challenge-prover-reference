@@ -43,8 +43,8 @@ typename B::vector_Fr *compute_H(size_t d,
 
     m = B::domain_get_m(domain);
 
-    // for i in 0 to m: H_tmp[i] -= cb[i]
-    B::vector_Fr_subeq(H_tmp, cb, m);
+    // for i in 0 to m: H_tmp[i] -= cc[i]
+    B::vector_Fr_subeq(H_tmp, cc, m);
 
     B::domain_divide_by_Z_on_coset(domain, H_tmp);
 
