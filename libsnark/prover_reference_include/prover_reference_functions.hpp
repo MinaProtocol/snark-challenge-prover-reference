@@ -24,6 +24,9 @@ public:
 
     static void init_public_params();
 
+    static void print_G1(G1 *a);
+    static void print_G2(G2 *a);
+
     static evaluation_domain *get_evaluation_domain(size_t d);
 
     static G1 *G1_add(G1 *a, G1 *b);
@@ -95,6 +98,9 @@ public:
     struct vector_G2;
 
     static void init_public_params();
+
+    static void print_G1(G1 *a);
+    static void print_G2(G2 *a);
 
     static evaluation_domain *get_evaluation_domain(size_t d);
 

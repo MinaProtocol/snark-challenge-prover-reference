@@ -139,6 +139,14 @@ void mnt4753_libsnark::init_public_params() {
   mnt4753_pp::init_public_params();
 }
 
+void mnt4753_libsnark::print_G1(mnt4753_libsnark::G1 *a) {
+  a->data.print();
+}
+
+void mnt4753_libsnark::print_G2(mnt4753_libsnark::G2 *a) {
+  a->data.print();
+}
+
 mnt4753_libsnark::evaluation_domain *
 mnt4753_libsnark::get_evaluation_domain(size_t d) {
   return new evaluation_domain{
@@ -440,6 +448,14 @@ struct mnt6753_libsnark::vector_G2 {
 
 void mnt6753_libsnark::init_public_params() {
   mnt6753_pp::init_public_params();
+}
+
+void mnt6753_libsnark::print_G1(mnt6753_libsnark::G1 *a) {
+  a->data.print();
+}
+
+void mnt6753_libsnark::print_G2(mnt6753_libsnark::G2 *a) {
+  a->data.print();
 }
 
 mnt6753_libsnark::evaluation_domain *
