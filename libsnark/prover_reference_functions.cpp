@@ -46,10 +46,14 @@ public:
   Fr<mnt4753_pp> r;
 
   groth16_input(const char *path, size_t d, size_t m) {
-    w = std::make_shared<std::vector<libff::Fr<mnt4753_pp>>>(std::vector<libff::Fr<mnt4753_pp>>());
-    ca = std::make_shared<std::vector<libff::Fr<mnt4753_pp>>>(std::vector<libff::Fr<mnt4753_pp>>());
-    cb = std::make_shared<std::vector<libff::Fr<mnt4753_pp>>>(std::vector<libff::Fr<mnt4753_pp>>());
-    cc = std::make_shared<std::vector<libff::Fr<mnt4753_pp>>>(std::vector<libff::Fr<mnt4753_pp>>());
+    w = std::make_shared<std::vector<libff::Fr<mnt4753_pp>>>(
+        std::vector<libff::Fr<mnt4753_pp>>());
+    ca = std::make_shared<std::vector<libff::Fr<mnt4753_pp>>>(
+        std::vector<libff::Fr<mnt4753_pp>>());
+    cb = std::make_shared<std::vector<libff::Fr<mnt4753_pp>>>(
+        std::vector<libff::Fr<mnt4753_pp>>());
+    cc = std::make_shared<std::vector<libff::Fr<mnt4753_pp>>>(
+        std::vector<libff::Fr<mnt4753_pp>>());
     FILE *inputs = fopen(path, "r");
 
     for (size_t i = 0; i < m + 1; ++i) {
@@ -83,11 +87,16 @@ public:
     FILE *params = fopen(path, "r");
     d = read_size_t(params);
     m = read_size_t(params);
-    A = std::make_shared<std::vector<libff::G1<mnt4753_pp>>>(std::vector<libff::G1<mnt4753_pp>>());
-    B1 = std::make_shared<std::vector<libff::G1<mnt4753_pp>>>(std::vector<libff::G1<mnt4753_pp>>());
-    L = std::make_shared<std::vector<libff::G1<mnt4753_pp>>>(std::vector<libff::G1<mnt4753_pp>>());
-    H = std::make_shared<std::vector<libff::G1<mnt4753_pp>>>(std::vector<libff::G1<mnt4753_pp>>());
-    B2 = std::make_shared<std::vector<libff::G2<mnt4753_pp>>>(std::vector<libff::G2<mnt4753_pp>>());
+    A = std::make_shared<std::vector<libff::G1<mnt4753_pp>>>(
+        std::vector<libff::G1<mnt4753_pp>>());
+    B1 = std::make_shared<std::vector<libff::G1<mnt4753_pp>>>(
+        std::vector<libff::G1<mnt4753_pp>>());
+    L = std::make_shared<std::vector<libff::G1<mnt4753_pp>>>(
+        std::vector<libff::G1<mnt4753_pp>>());
+    H = std::make_shared<std::vector<libff::G1<mnt4753_pp>>>(
+        std::vector<libff::G1<mnt4753_pp>>());
+    B2 = std::make_shared<std::vector<libff::G2<mnt4753_pp>>>(
+        std::vector<libff::G2<mnt4753_pp>>());
     for (size_t i = 0; i <= m; ++i) {
       A->emplace_back(read_g1<mnt4753_pp>(params));
     }
@@ -139,13 +148,9 @@ void mnt4753_libsnark::init_public_params() {
   mnt4753_pp::init_public_params();
 }
 
-void mnt4753_libsnark::print_G1(mnt4753_libsnark::G1 *a) {
-  a->data.print();
-}
+void mnt4753_libsnark::print_G1(mnt4753_libsnark::G1 *a) { a->data.print(); }
 
-void mnt4753_libsnark::print_G2(mnt4753_libsnark::G2 *a) {
-  a->data.print();
-}
+void mnt4753_libsnark::print_G2(mnt4753_libsnark::G2 *a) { a->data.print(); }
 
 mnt4753_libsnark::evaluation_domain *
 mnt4753_libsnark::get_evaluation_domain(size_t d) {
@@ -192,28 +197,27 @@ mnt4753_libsnark::vector_Fr_offset(mnt4753_libsnark::vector_Fr *a,
   return new vector_Fr{.data = a->data, .offset = offset};
 }
 
-void
-mnt4753_libsnark::vector_Fr_copy_into(
-  mnt4753_libsnark::vector_Fr *src,
-  mnt4753_libsnark::vector_Fr *dst,
-                                 size_t length) {
-                                   std::cerr << "length is " << length << ", offset is " << src->offset << ", size of src is " << src->data->size() << ", size of dst is " << dst->data->size() << std::endl;
+void mnt4753_libsnark::vector_Fr_copy_into(mnt4753_libsnark::vector_Fr *src,
+                                           mnt4753_libsnark::vector_Fr *dst,
+                                           size_t length) {
+  std::cerr << "length is " << length << ", offset is " << src->offset
+            << ", size of src is " << src->data->size() << ", size of dst is "
+            << dst->data->size() << std::endl;
 #ifdef MULTICORE
 #pragma omp parallel for
 #endif
   for (size_t i = 0; i < length; i++) {
-    //std::cerr << "doing iteration " << i << std::endl;
+    // std::cerr << "doing iteration " << i << std::endl;
     dst->data->at(i) = src->data->at(i);
   }
-  //std::copy(src->data->begin(), src->data->end(), dst->data->begin() );
+  // std::copy(src->data->begin(), src->data->end(), dst->data->begin() );
 }
 
-mnt4753_libsnark::vector_Fr *
- mnt4753_libsnark::vector_Fr_zeros(size_t length) {
-   std::vector<Fr<mnt4753_pp>> data(length, Fr<mnt4753_pp>::zero());
-   return new mnt4753_libsnark::vector_Fr{.data= 
-   std::make_shared<std::vector<Fr<mnt4753_pp>>>(data)};
- }
+mnt4753_libsnark::vector_Fr *mnt4753_libsnark::vector_Fr_zeros(size_t length) {
+  std::vector<Fr<mnt4753_pp>> data(length, Fr<mnt4753_pp>::zero());
+  return new mnt4753_libsnark::vector_Fr{
+      .data = std::make_shared<std::vector<Fr<mnt4753_pp>>>(data)};
+}
 
 void mnt4753_libsnark::domain_iFFT(mnt4753_libsnark::evaluation_domain *domain,
                                    mnt4753_libsnark::vector_Fr *a) {
@@ -357,10 +361,14 @@ public:
   Fr<mnt6753_pp> r;
 
   groth16_input(const char *path, size_t d, size_t m) {
-    w = std::make_shared<std::vector<libff::Fr<mnt6753_pp>>>(std::vector<libff::Fr<mnt6753_pp>>());
-    ca = std::make_shared<std::vector<libff::Fr<mnt6753_pp>>>(std::vector<libff::Fr<mnt6753_pp>>());
-    cb = std::make_shared<std::vector<libff::Fr<mnt6753_pp>>>(std::vector<libff::Fr<mnt6753_pp>>());
-    cc = std::make_shared<std::vector<libff::Fr<mnt6753_pp>>>(std::vector<libff::Fr<mnt6753_pp>>());
+    w = std::make_shared<std::vector<libff::Fr<mnt6753_pp>>>(
+        std::vector<libff::Fr<mnt6753_pp>>());
+    ca = std::make_shared<std::vector<libff::Fr<mnt6753_pp>>>(
+        std::vector<libff::Fr<mnt6753_pp>>());
+    cb = std::make_shared<std::vector<libff::Fr<mnt6753_pp>>>(
+        std::vector<libff::Fr<mnt6753_pp>>());
+    cc = std::make_shared<std::vector<libff::Fr<mnt6753_pp>>>(
+        std::vector<libff::Fr<mnt6753_pp>>());
     FILE *inputs = fopen(path, "r");
 
     for (size_t i = 0; i < m + 1; ++i) {
@@ -394,11 +402,16 @@ public:
     FILE *params = fopen(path, "r");
     d = read_size_t(params);
     m = read_size_t(params);
-    A = std::make_shared<std::vector<libff::G1<mnt6753_pp>>>(std::vector<libff::G1<mnt6753_pp>>());
-    B1 = std::make_shared<std::vector<libff::G1<mnt6753_pp>>>(std::vector<libff::G1<mnt6753_pp>>());
-    L = std::make_shared<std::vector<libff::G1<mnt6753_pp>>>(std::vector<libff::G1<mnt6753_pp>>());
-    H = std::make_shared<std::vector<libff::G1<mnt6753_pp>>>(std::vector<libff::G1<mnt6753_pp>>());
-    B2 = std::make_shared<std::vector<libff::G2<mnt6753_pp>>>(std::vector<libff::G2<mnt6753_pp>>());
+    A = std::make_shared<std::vector<libff::G1<mnt6753_pp>>>(
+        std::vector<libff::G1<mnt6753_pp>>());
+    B1 = std::make_shared<std::vector<libff::G1<mnt6753_pp>>>(
+        std::vector<libff::G1<mnt6753_pp>>());
+    L = std::make_shared<std::vector<libff::G1<mnt6753_pp>>>(
+        std::vector<libff::G1<mnt6753_pp>>());
+    H = std::make_shared<std::vector<libff::G1<mnt6753_pp>>>(
+        std::vector<libff::G1<mnt6753_pp>>());
+    B2 = std::make_shared<std::vector<libff::G2<mnt6753_pp>>>(
+        std::vector<libff::G2<mnt6753_pp>>());
     for (size_t i = 0; i <= m; ++i) {
       A->emplace_back(read_g1<mnt6753_pp>(params));
     }
@@ -450,13 +463,9 @@ void mnt6753_libsnark::init_public_params() {
   mnt6753_pp::init_public_params();
 }
 
-void mnt6753_libsnark::print_G1(mnt6753_libsnark::G1 *a) {
-  a->data.print();
-}
+void mnt6753_libsnark::print_G1(mnt6753_libsnark::G1 *a) { a->data.print(); }
 
-void mnt6753_libsnark::print_G2(mnt6753_libsnark::G2 *a) {
-  a->data.print();
-}
+void mnt6753_libsnark::print_G2(mnt6753_libsnark::G2 *a) { a->data.print(); }
 
 mnt6753_libsnark::evaluation_domain *
 mnt6753_libsnark::get_evaluation_domain(size_t d) {
@@ -503,19 +512,18 @@ mnt6753_libsnark::vector_Fr_offset(mnt6753_libsnark::vector_Fr *a,
   return new vector_Fr{.data = a->data, .offset = offset};
 }
 
-void
-mnt6753_libsnark::vector_Fr_copy_into(
-  mnt6753_libsnark::vector_Fr *src,
-  mnt6753_libsnark::vector_Fr *dst,
-                                 size_t length) {
-  std::copy(src->data->begin()+src->offset, src->data->begin()+src->offset+length, dst->data->begin() );
+void mnt6753_libsnark::vector_Fr_copy_into(mnt6753_libsnark::vector_Fr *src,
+                                           mnt6753_libsnark::vector_Fr *dst,
+                                           size_t length) {
+  std::copy(src->data->begin() + src->offset,
+            src->data->begin() + src->offset + length, dst->data->begin());
 }
 
-mnt6753_libsnark::vector_Fr *
- mnt6753_libsnark::vector_Fr_zeros(size_t length) {
-   return new mnt6753_libsnark::vector_Fr{.data= 
-   std::make_shared<std::vector<Fr<mnt6753_pp>>>(length, Fr<mnt6753_pp>::zero()) };
- }
+mnt6753_libsnark::vector_Fr *mnt6753_libsnark::vector_Fr_zeros(size_t length) {
+  return new mnt6753_libsnark::vector_Fr{
+      .data = std::make_shared<std::vector<Fr<mnt6753_pp>>>(
+          length, Fr<mnt6753_pp>::zero())};
+}
 
 void mnt6753_libsnark::domain_iFFT(mnt6753_libsnark::evaluation_domain *domain,
                                    mnt6753_libsnark::vector_Fr *a) {
