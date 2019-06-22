@@ -228,7 +228,7 @@ void mnt4753_libsnark::domain_cosetFFT(
 void mnt4753_libsnark::domain_icosetFFT(
     mnt4753_libsnark::evaluation_domain *domain,
     mnt4753_libsnark::vector_Fr *a) {
-  domain->data->cosetFFT(*a->data, Fr<mnt4753_pp>::multiplicative_generator);
+  domain->data->icosetFFT(*a->data, Fr<mnt4753_pp>::multiplicative_generator);
 }
 void mnt4753_libsnark::domain_divide_by_Z_on_coset(
     mnt4753_libsnark::evaluation_domain *domain,
@@ -530,7 +530,7 @@ void mnt6753_libsnark::domain_cosetFFT(
 void mnt6753_libsnark::domain_icosetFFT(
     mnt6753_libsnark::evaluation_domain *domain,
     mnt6753_libsnark::vector_Fr *a) {
-  domain->data->cosetFFT(*a->data, Fr<mnt6753_pp>::multiplicative_generator);
+  domain->data->icosetFFT(*a->data, Fr<mnt6753_pp>::multiplicative_generator);
 }
 void mnt6753_libsnark::domain_divide_by_Z_on_coset(
     mnt6753_libsnark::evaluation_domain *domain,
