@@ -51,7 +51,9 @@ typename B::vector_Fr *compute_H(size_t d,
     B::domain_icosetFFT(domain, H_tmp);
     
     m = B::domain_get_m(domain);
-    return B::vector_Fr_copy(H_tmp, m);
+    typename B::vector_Fr *H_res = B::vector_Fr_zeros(m+1);
+    B::vector_Fr_copy_into(H_tmp, H_res, m);
+    return H_res;
 }
 
 template<typename B>

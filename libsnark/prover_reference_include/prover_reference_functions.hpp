@@ -32,7 +32,8 @@ public:
     static void vector_Fr_muleq(vector_Fr *a, vector_Fr *b, size_t size);
     static void vector_Fr_subeq(vector_Fr *a, vector_Fr *b, size_t size);
     static vector_Fr *vector_Fr_offset(vector_Fr *a, size_t offset);
-    static vector_Fr *vector_Fr_copy(vector_Fr *a, size_t length);
+    static void vector_Fr_copy_into(vector_Fr *src, vector_Fr *dst, size_t length);
+    static vector_Fr *vector_Fr_zeros(size_t length);
 
     static void domain_iFFT(evaluation_domain* domain, vector_Fr *a);
     static void domain_cosetFFT(evaluation_domain* domain, vector_Fr *a);
@@ -103,7 +104,8 @@ public:
     static void vector_Fr_muleq(vector_Fr *a, vector_Fr *b, size_t size);
     static void vector_Fr_subeq(vector_Fr *a, vector_Fr *b, size_t size);
     static vector_Fr *vector_Fr_offset(vector_Fr *a, size_t offset);
-    static vector_Fr *vector_Fr_copy(vector_Fr *a, size_t length);
+    static void vector_Fr_copy_into(vector_Fr *src, vector_Fr *dst, size_t length);
+    static vector_Fr *vector_Fr_zeros(size_t length);
 
     static void domain_iFFT(evaluation_domain* domain, vector_Fr *a);
     static void domain_cosetFFT(evaluation_domain* domain, vector_Fr *a);

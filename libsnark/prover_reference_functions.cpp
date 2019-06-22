@@ -184,13 +184,28 @@ mnt4753_libsnark::vector_Fr_offset(mnt4753_libsnark::vector_Fr *a,
   return new vector_Fr{.data = a->data, .offset = offset};
 }
 
-mnt4753_libsnark::vector_Fr *
-mnt4753_libsnark::vector_Fr_copy(mnt4753_libsnark::vector_Fr *a,
+void
+mnt4753_libsnark::vector_Fr_copy_into(
+  mnt4753_libsnark::vector_Fr *src,
+  mnt4753_libsnark::vector_Fr *dst,
                                  size_t length) {
-  auto new_data = std::make_shared<std::vector<Fr<mnt4753_pp>>>(
-      std::vector<Fr<mnt4753_pp>>(a->data->begin()+a->offset, a->data->begin() + a->offset+length));
-  return new mnt4753_libsnark::vector_Fr{.data = new_data, .offset = 0};
+                                   std::cerr << "length is " << length << ", offset is " << src->offset << ", size of src is " << src->data->size() << ", size of dst is " << dst->data->size() << std::endl;
+#ifdef MULTICORE
+#pragma omp parallel for
+#endif
+  for (size_t i = 0; i < length; i++) {
+    //std::cerr << "doing iteration " << i << std::endl;
+    dst->data->at(i) = src->data->at(i);
+  }
+  //std::copy(src->data->begin(), src->data->end(), dst->data->begin() );
 }
+
+mnt4753_libsnark::vector_Fr *
+ mnt4753_libsnark::vector_Fr_zeros(size_t length) {
+   std::vector<Fr<mnt4753_pp>> data(length, Fr<mnt4753_pp>::zero());
+   return new mnt4753_libsnark::vector_Fr{.data= 
+   std::make_shared<std::vector<Fr<mnt4753_pp>>>(data)};
+ }
 
 void mnt4753_libsnark::domain_iFFT(mnt4753_libsnark::evaluation_domain *domain,
                                    mnt4753_libsnark::vector_Fr *a) {
@@ -472,13 +487,19 @@ mnt6753_libsnark::vector_Fr_offset(mnt6753_libsnark::vector_Fr *a,
   return new vector_Fr{.data = a->data, .offset = offset};
 }
 
-mnt6753_libsnark::vector_Fr *
-mnt6753_libsnark::vector_Fr_copy(mnt6753_libsnark::vector_Fr *a,
+void
+mnt6753_libsnark::vector_Fr_copy_into(
+  mnt6753_libsnark::vector_Fr *src,
+  mnt6753_libsnark::vector_Fr *dst,
                                  size_t length) {
-  auto new_data = std::make_shared<std::vector<Fr<mnt6753_pp>>>(
-      std::vector<Fr<mnt6753_pp>>(a->data->begin(), a->data->begin() + length));
-  return new mnt6753_libsnark::vector_Fr{.data = new_data, .offset = 0};
+  std::copy(src->data->begin()+src->offset, src->data->begin()+src->offset+length, dst->data->begin() );
 }
+
+mnt6753_libsnark::vector_Fr *
+ mnt6753_libsnark::vector_Fr_zeros(size_t length) {
+   return new mnt6753_libsnark::vector_Fr{.data= 
+   std::make_shared<std::vector<Fr<mnt6753_pp>>>(length, Fr<mnt6753_pp>::zero()) };
+ }
 
 void mnt6753_libsnark::domain_iFFT(mnt6753_libsnark::evaluation_domain *domain,
                                    mnt6753_libsnark::vector_Fr *a) {
