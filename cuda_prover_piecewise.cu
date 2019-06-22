@@ -70,21 +70,15 @@ void run_prover(const char *params_path, const char *input_path, const char *out
 
     // Now the 5 multi-exponentiations
     typename B::G1 *evaluation_At = B::multiexp_G1(B::input_w(input), B::params_A(params), B::params_m(params) + 1);
-    B::print_G1(evaluation_At);
     typename B::G1 *evaluation_Bt1 = B::multiexp_G1(B::input_w(input), B::params_B1(params), B::params_m(params) + 1);
-    B::print_G1(evaluation_Bt1);
     typename B::G2 *evaluation_Bt2 = B::multiexp_G2(B::input_w(input), B::params_B2(params), B::params_m(params) + 1);
-    B::print_G2(evaluation_Bt2);
     typename B::G1 *evaluation_Ht = B::multiexp_G1(coefficients_for_H, B::params_H(params), B::params_d(params));
-    B::print_G1(evaluation_Ht);
     typename B::G1 *evaluation_Lt = B::multiexp_G1(B::vector_Fr_offset(B::input_w(input), primary_input_size + 1), B::params_L(params), B::params_m(params) - 1);
-    B::print_G1(evaluation_Lt);
 
 
     auto scaled_Bt1 = B::G1_scale(B::input_r(input), evaluation_Bt1);
     auto Lt1_plus_scaled_Bt1 = B::G1_add(evaluation_Lt, scaled_Bt1);
     auto C = B::G1_add(evaluation_Ht, Lt1_plus_scaled_Bt1);
-    B::print_G1(C);
 
     B::groth16_output_write(evaluation_At, evaluation_Bt2, C, output_path);
     

@@ -216,15 +216,7 @@ int run_prover(
         parameters.L.begin(),
         parameters.m - 1);
 
-    evaluation_At.print();
-    evaluation_Bt1.print();
-    evaluation_Bt2.print();
-    evaluation_Ht.print();
-    evaluation_Lt.print();
-
     libff::G1<ppT> C = evaluation_Ht + evaluation_Lt + input.r * evaluation_Bt1; /*+ s *  g1_A  - (r * s) * pk.delta_g1; */
-
-    C.print();
 
     libff::leave_block("Multi-exponentiations");
     libff::leave_block("Compute the proof");
