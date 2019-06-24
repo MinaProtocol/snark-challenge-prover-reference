@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
+enable_language(CUDA)
+
 project (libsnark)
 
 set(
@@ -251,14 +253,7 @@ add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND})
 
 add_subdirectory(depends)
 add_subdirectory(libsnark)
-
-find_package(CUDA REQUIRED)
-cuda_select_nvcc_arch_flags(CUDA_ARCH_FLAGS Volta)
-string(REPLACE ";" " " CUDA_ARCH_FLAGS_SPACES "${CUDA_ARCH_FLAGS}")
-
-string(APPEND CMAKE_CUDA_FLAGS " ${CUDA_ARCH_FLAGS_SPACES}")
-string(APPEND CMAKE_CUDA_FLAGS " -Xcompiler -Wall,-Wextra")
-set(CMAKE_CUDA_FLAGS_DEBUG "-g -G")
+add_subdirectory(cuda-fixnum)
 
 add_executable (
     cuda_prover_piecewise
