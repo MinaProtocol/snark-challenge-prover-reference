@@ -10,7 +10,7 @@ jobs:
             - checkout
             - run: apt-get update
             - run: apt-get install -y build-essential cmake git libomp-dev libgmp3-dev libprocps-dev python-markdown libboost-all-dev libssl-dev pkg-config
-            - run: ./build.sh
+            - run: env "EXTRA_CMAKE_ARGS_FOR_CI=-DCUDA_ARCH_LIST=Volta" ./build.sh
 workflows:
     version: 2
     main_workflow:
