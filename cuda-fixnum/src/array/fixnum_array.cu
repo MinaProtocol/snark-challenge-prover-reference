@@ -5,6 +5,8 @@
 #include <string>
 // for min
 #include <algorithm>
+// for assert
+#include <cassert>
 
 #include "util/cuda_wrap.h"
 #include "fixnum_array.h"
