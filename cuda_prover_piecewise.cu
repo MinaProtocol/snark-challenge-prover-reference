@@ -11,9 +11,6 @@
 #include <modnum/modnum_monty_cios.cu>
 #include <modnum/modnum_monty_redc.cu>
 
-// cuda-fixnum/main.cu has some example code. this declaration lets us run it.
-int do_fixnum_example(const char *inputs_file, const char *outputs_file);
-
 // This is where all the FFTs happen
 
 // template over the bundle of types and functions.
@@ -104,23 +101,19 @@ int main(int argc, char **argv) {
   setbuf(stdout, NULL);
   std::string curve(argv[1]);
   std::string mode(argv[2]);
-  std::string device(argv[3]); // this "device" arg
 
-  const char *params_path = argv[4];
-  const char *input_path = argv[5];
-  const char *output_path = argv[6];
-  if (device == "CPU") {
-    if (curve == "MNT4753") {
-      if (mode == "compute") {
-        run_prover<mnt4753_libsnark>(params_path, input_path, output_path);
-      }
-    } else if (curve == "MNT6753") {
-      if (mode == "compute") {
-        run_prover<mnt6753_libsnark>(params_path, input_path, output_path);
-      }
+  const char *params_path = argv[3];
+  const char *input_path = argv[4];
+  const char *output_path = argv[5];
+
+  if (curve == "MNT4753") {
+    if (mode == "compute") {
+      run_prover<mnt4753_libsnark>(params_path, input_path, output_path);
     }
-  } else if (device == "GPU") {
-    do_fixnum_example(argv[4], argv[5]);
+  } else if (curve == "MNT6753") {
+    if (mode == "compute") {
+      run_prover<mnt6753_libsnark>(params_path, input_path, output_path);
+    }
   }
 
   return 0;
