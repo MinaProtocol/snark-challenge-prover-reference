@@ -22,8 +22,8 @@
 using namespace libff;
 using namespace libsnark;
 
-const multi_exp_method method = multi_exp_method_BDLO12;
-// const multi_exp_method method = multi_exp_method_bos_coster;
+// const multi_exp_method method = multi_exp_method_BDLO12;
+const multi_exp_method method = multi_exp_method_bos_coster;
 
 
 static inline auto now() -> decltype(std::chrono::high_resolution_clock::now()) {
@@ -223,22 +223,32 @@ int run_prover(
     libff::enter_block("Multi-exponentiations");
 
     // Now the 5 multi-exponentiations
+    libff::enter_block("A G1 multiexp");
     G1<ppT> evaluation_At = multiexp<G1<ppT>, Fr<ppT>>(
         w.begin(), parameters.A.begin(), parameters.m + 1);
+    libff::leave_block("A G1 multiexp");
 
+    libff::enter_block("B G1 multiexp");
     G1<ppT> evaluation_Bt1 = multiexp<G1<ppT>, Fr<ppT>>(
         w.begin(), parameters.B1.begin(), parameters.m + 1);
+    libff::leave_block("B G1 multiexp");
 
+    libff::enter_block("B G2 multiexp");
     G2<ppT> evaluation_Bt2 = multiexp<G2<ppT>, Fr<ppT>>(
         w.begin(), parameters.B2.begin(), parameters.m + 1);
+    libff::leave_block("B G2 multiexp");
 
+    libff::enter_block("H G1 multiexp");
     G1<ppT> evaluation_Ht = multiexp<G1<ppT>, Fr<ppT>>(
         coefficients_for_H.begin(), parameters.H.begin(), parameters.d);
+    libff::leave_block("H G1 multiexp");
 
+    libff::enter_block("L G1 multiexp");
     G1<ppT> evaluation_Lt = multiexp<G1<ppT>, Fr<ppT>>(
         w.begin() + primary_input_size + 1,
         parameters.L.begin(),
         parameters.m - 1);
+    libff::leave_block("L G1 multiexp");
 
     libff::G1<ppT> C = evaluation_Ht + evaluation_Lt + input.r * evaluation_Bt1; /*+ s *  g1_A  - (r * s) * pk.delta_g1; */
 
