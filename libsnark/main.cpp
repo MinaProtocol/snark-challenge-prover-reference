@@ -1,4 +1,5 @@
 #include <cassert>
+#include <chrono>
 #include <cstdio>
 #include <fstream>
 #include <fstream>
@@ -23,6 +24,20 @@ using namespace libsnark;
 
 const multi_exp_method method = multi_exp_method_BDLO12;
 // const multi_exp_method method = multi_exp_method_bos_coster;
+
+
+static inline auto now() -> decltype(std::chrono::high_resolution_clock::now()) {
+    return std::chrono::high_resolution_clock::now();
+}
+
+template<typename T>
+void
+print_time(T &t1, const char *str) {
+    auto t2 = std::chrono::high_resolution_clock::now();
+    auto tim = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+    printf("%s: %ld ms\n", str, tim);
+    t1 = t2;
+}
 
 template<typename ppT>
 class groth16_parameters {
@@ -177,10 +192,19 @@ int run_prover(
 {
     ppT::init_public_params();
 
+    auto beginning = now();
+    auto t = beginning;
+
     const size_t primary_input_size = 1;
 
     const groth16_parameters<ppT> parameters(params_path);
+    print_time(t, "load params");
+
+    auto t_main = t;
+
     const groth16_input<ppT> input(input_path, parameters.d, parameters.m);
+
+    print_time(t, "load inputs");
 
     std::vector<Fr<ppT>> w  = std::move(input.w);
     std::vector<Fr<ppT>> ca = std::move(input.ca);
@@ -222,13 +246,18 @@ int run_prover(
     libff::leave_block("Compute the proof");
     libff::leave_block("Call to r1cs_gg_ppzksnark_prover");
 
+    print_time(t, "cpu");
+
     groth16_output<ppT> output(
       std::move(evaluation_At),
       std::move(evaluation_Bt2),
       std::move(C));
 
+    print_time(t, "store");
+
     output.write(output_path);
 
+    print_time(t_main, "Total time from input to output: ");
     return 0;
 }
 
