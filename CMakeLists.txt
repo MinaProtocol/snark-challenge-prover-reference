@@ -1,8 +1,12 @@
 cmake_minimum_required(VERSION 3.10)
 
-enable_language(CUDA)
-
 project (libsnark)
+
+find_package( OpenCL REQUIRED )
+
+include_directories( ${OPENCL_INCLUDE_DIR} )
+
+link_directories(${OpenCL_LIBRARY})
 
 set(
   CURVE
@@ -107,13 +111,13 @@ if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   # Common compilation flags and warning configuration
   set(
     CMAKE_CXX_FLAGS
-    "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -Wextra -Wfatal-errors"
+    "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -Wextra -Wfatal-errors -lOpenCL"
   )
   if("${MULTICORE}")
       if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xpreprocessor -fopenmp")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xpreprocessor -fopenmp -lOpenCL")
       else()
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -lOpenCL")
       endif()
   endif()
   # Default optimizations flags (to override, use -DOPT_FLAGS=...)
@@ -253,12 +257,3 @@ add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND})
 
 add_subdirectory(depends)
 add_subdirectory(libsnark)
-add_subdirectory(cuda-fixnum)
-
-add_executable (
-    cuda_prover_piecewise
-    EXCLUDE_FROM_ALL
-
-    cuda_prover_piecewise.cu
-)
-target_link_libraries(cuda_prover_piecewise cuda_main prover_reference_functions)

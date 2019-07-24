@@ -62,6 +62,7 @@ target_link_libraries(
   ${CRYPTO_LIBRARIES}
   ${PROCPS_LIBRARIES}
   ${SNARK_EXTRALIBS}
+  ${OPENCL_INCLUDE_DIR}
 )
 target_include_directories(
   snark
@@ -199,6 +200,7 @@ target_link_libraries(
   generate_parameters
 
   snark
+  ${OpenCL_LIBRARY}
 )
 
 add_executable(
@@ -211,6 +213,7 @@ target_link_libraries(
   main
 
   snark
+  ${OpenCL_LIBRARY}
 )
 
 add_library (
@@ -225,6 +228,7 @@ target_link_libraries (
     prover_reference_functions
 
     snark
+  ${OpenCL_LIBRARY}
 )
 
 target_include_directories(prover_reference_functions PUBLIC prover_reference_include)
