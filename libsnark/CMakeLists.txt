@@ -224,7 +224,7 @@ add_executable(
 )
 target_link_libraries(
   opencl_main
-
+  prover_reference_functions
   snark
   ${OpenCL_LIBRARY}
 )
@@ -240,7 +240,7 @@ target_compile_features(prover_reference_functions PUBLIC cxx_std_11)
 
 target_link_libraries (
     prover_reference_functions
-
+    
     snark
   ${OpenCL_LIBRARY}
 )
