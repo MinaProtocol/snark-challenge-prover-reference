@@ -216,6 +216,20 @@ target_link_libraries(
   ${OpenCL_LIBRARY}
 )
 
+add_executable(
+  opencl_main
+  EXCLUDE_FROM_ALL
+
+  opencl_main.cpp
+)
+target_link_libraries(
+  opencl_main
+
+  snark
+  ${OpenCL_LIBRARY}
+)
+
+
 add_library (
     prover_reference_functions STATIC
     prover_reference_functions.cpp

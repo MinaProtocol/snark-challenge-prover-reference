@@ -24,6 +24,15 @@ using namespace libsnark;
 
 const multi_exp_method method = multi_exp_method_BDLO12;
 
+// #define __CL_ENABLE_EXCEPTIONS
+#include <CL/cl.h>
+#define DATA_SIZE (131072)
+#define limbs_per_elem (12)
+#include <chrono> 
+
+using namespace std::chrono; 
+using namespace std;
+
 template <typename G, typename Fr>
 G multiexp(typename std::vector<Fr>::const_iterator scalar_start,
            typename std::vector<G>::const_iterator g_start, size_t length) {

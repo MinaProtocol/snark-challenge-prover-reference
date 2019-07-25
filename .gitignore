@@ -4,4 +4,5 @@ MNT6753-input
 MNT6753-parameters
 build
 main
+opencl_main
 generate_parameters
