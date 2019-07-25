@@ -233,6 +233,13 @@ void mnt4753_libsnark::domain_iFFT(mnt4753_libsnark::evaluation_domain *domain,
   std::vector<Fr<mnt4753_pp>> &data = *a->data;
   domain->data->iFFT(data);
 }
+
+void mnt4753_libsnark::domain_iFFT_GPU(mnt4753_libsnark::evaluation_domain *domain,
+                                   mnt4753_libsnark::vector_Fr *a) {
+  std::vector<Fr<mnt4753_pp>> &data = *a->data;
+  domain->data->iFFT(data);
+}
+
 void mnt4753_libsnark::domain_cosetFFT(
     mnt4753_libsnark::evaluation_domain *domain,
     mnt4753_libsnark::vector_Fr *a) {

@@ -512,7 +512,7 @@ MNT_G1 G1_mixed_add6(MNT_G1 a, MNT_G1 b) {
 }
 
 
-__kernel void add_G1(
+__kernel void multiexp_G1(
     __global MNT_G1* input_h1,
     __global MNT_G1* input_g1,
     __global MNT_G1* output_h1,
