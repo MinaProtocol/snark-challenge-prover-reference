@@ -36,11 +36,13 @@ typename B::vector_Fr *compute_H(
     printf("Compute the polynomial H\n");
 
     Kernel k;
+    k.init(16384);
 
     auto domain = B::get_evaluation_domain(d + 1);
 
     //domain->iFFT(ca);
     //domain->iFFT(cb);
+    B::domain_iFFT(domain, ca);
     B::domain_iFFT_GPU(domain, ca, k);
     B::domain_iFFT(domain, cb);
 

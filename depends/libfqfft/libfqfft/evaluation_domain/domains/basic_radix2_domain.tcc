@@ -27,6 +27,8 @@ namespace libfqfft {
 template<typename FieldT>
 basic_radix2_domain<FieldT>::basic_radix2_domain(const size_t m, bool &err) : evaluation_domain<FieldT>(m)
 {
+    printf("in basic_radix2 domain \n");
+    FieldT(1).mont_repr.print();
     if (m <= 1) {
       err = true;
       omega = FieldT(1);

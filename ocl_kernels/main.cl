@@ -35,6 +35,14 @@ typedef struct {
 #define mnt4753_Q ((int768){{0x245e8001,0x5e9063de,0x2cdd119f,0xe39d5452,0x9ac425f0,0x63881071,0x767254a4,0x685acce9,0xcb537e38,0xb80f0da5,0xf218059d,0xb117e776,0xa15af79d,0x99d124d9,0xe8a0ed8d,0x07fdb925,0x6c97d873,0x5eb7e8f9,0x5b8fafed,0xb7f99750,0xeee2cdad,0x10229022,0x2d92c411,0x1c4c6}})
 #define mnt6753_Q ((int768){{0x40000001,0xd90776e2,0xfa13a4f,0x4ea09917,0x3f005797,0xd6c381bc,0x34993aa4,0xb9dff976,0x29212636,0x3eebca94,0xc859a99b,0xb26c5c28,0xa15af79d,0x99d124d9,0xe8a0ed8d,0x7fdb925,0x6c97d873,0x5eb7e8f9,0x5b8fafed,0xb7f99750,0xeee2cdad,0x10229022,0x2d92c411,0x1c4c6}})
 
+limb bitreverse(limb n, limb bits) {
+  limb r = 0;
+  for(int i = 0; i < bits; i++) {
+    r = (r << 1) | (n & 1);
+    n >>= 1;
+  }
+  return r;
+}
 
 void print(int768 v) {
   printf("%u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u\n",
@@ -530,4 +538,69 @@ __kernel void multiexp_G1(
   output_h1[0] = G1_add4(output_h1[0], input_g1[2]);
   output_h1[0] = G1_add4(output_h1[0], input_g1[3]);
   output_h1[0] = G1_add4(output_h1[0], input_g1[4]);
+}
+
+
+__kernel void mnt4753_fft(
+    __global int768* x,
+    __global int768* y,
+    __global int768* pq,
+    __global int768* omegas,
+    __local int768* u,
+    const unsigned int n,
+    const unsigned int lgp,
+    const unsigned int deg,
+    const unsigned int max_deg) // 1=>radix2, 2=>radix4, 3=>radix8, ...
+{
+  uint32 lid = get_local_id(0);
+  uint32 lsize = get_local_size(0);
+  uint32 index = get_group_id(0);
+  uint32 t = n >> deg;
+  uint32 p = 1 << lgp;
+  uint32 k = index & (p - 1);
+
+  x += index;
+  y += ((index - k) << deg) + k;
+
+  uint32 count = 1 << deg; // 2^deg
+  uint32 counth = count >> 1; // Half of count
+
+  uint32 counts = count / lsize * lid;
+  uint32 counte = counts + count / lsize;
+
+  //////// ~30% of total time
+  int768 twiddle = int768_pow_cached(omegas, (n >> lgp >> deg) * k);
+  ////////
+
+  //////// ~35% of total time
+  int768 tmp = int768_pow(twiddle, counts);
+  for(uint32 i = counts; i < counte; i++) {
+    u[i] = int768_mul4(tmp, x[i*t]);
+    tmp = int768_mul4(tmp, twiddle);
+  }
+  barrier(CLK_LOCAL_MEM_FENCE);
+  ////////
+
+  //////// ~35% of total time
+  uint32 pqshift = max_deg - deg;
+  for(uint32 rnd = 0; rnd < deg; rnd++) {
+    uint32 bit = counth >> rnd;
+    for(uint32 i = counts >> 1; i < counte >> 1; i++) {
+      uint32 di = i & (bit - 1);
+      uint32 i0 = (i << 1) - di;
+      uint32 i1 = i0 + bit;
+      tmp = u[i0];
+      u[i0] = int768_add4(u[i0], u[i1]);
+      u[i1] = int768_sub4(tmp, u[i1]);
+      if(di != 0) u[i1] = int768_mul4(pq[di << rnd << pqshift], u[i1]);
+    }
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+  }
+  ////////
+
+  for(uint32 i = counts >> 1; i < counte >> 1; i++) {
+    y[i*p] = u[bitreverse(i, deg)];
+    y[(i+counth)*p] = u[bitreverse(i + counth, deg)];
+  }
 }

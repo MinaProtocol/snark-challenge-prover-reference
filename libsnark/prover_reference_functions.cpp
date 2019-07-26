@@ -237,57 +237,119 @@ mnt4753_libsnark::vector_Fr *mnt4753_libsnark::vector_Fr_zeros(size_t length) {
 void mnt4753_libsnark::domain_iFFT(mnt4753_libsnark::evaluation_domain *domain,
                                    mnt4753_libsnark::vector_Fr *a) {
   std::vector<Fr<mnt4753_pp>> &data = *a->data;
+  printf("FFT CPU ===== \n");
   data[0].print();
-  printf("FFT ===== \n");
   a->data->at(0).print();
   domain->data->iFFT(data);
-  printf("domain elem\n");
+  printf("after FFT\n");
   Fr<mnt4753_pp> elem = domain->data->get_domain_element(1);
 
   a->data->at(0).print();
-  elem.print();
   data[0].print();
 }
 
 void mnt4753_libsnark::domain_iFFT_GPU(mnt4753_libsnark::evaluation_domain *domain,
                                    mnt4753_libsnark::vector_Fr *a, Kernel kern) {
   std::vector<Fr<mnt4753_pp>> &data = *a->data;
-  kern.init(10);
+  
+  unsigned int MAX_RADIX_DEGREE = 8;
+  unsigned int MAX_LOCAL_WORK_SIZE_DEGREE = 7;
+
+  printf("FFT GPU ===== \n");
+  printf("a size:%u \n", data.size());
+
+  size_t m = data.size();
+  Fr<mnt4753_pp> omega = Fr<mnt4753_pp>::zero();
+  bool err = true;
+  printf("gpu omega one:\n");
+  Fr<mnt4753_pp>::one().mont_repr.print();
+
+  // get omega for basic radix
+  if (m <= 1) {
+    err = true;
+    omega = Fr<mnt4753_pp>::one();
+  } else if (!std::is_same<Fr<mnt4753_pp>, libff::Double>::value) {
+      if (Fr<mnt4753_pp>::small_subgroup_defined)
+      {
+          const size_t q = Fr<mnt4753_pp>::small_subgroup_base;
+
+          const size_t q_adicity = libff::k_adicity(q, m);
+          const size_t q_part = libff::pow_int(q, q_adicity);
+
+          const size_t two_adicity = libff::k_adicity(2, m);
+          const size_t two_part = 1u << two_adicity;
+
+          if (m != q_part * two_part) {
+            err = true;
+            omega = Fr<mnt4753_pp>(1);
+          } else {
+            omega = libff::get_root_of_unity<Fr<mnt4753_pp>>(m, err);
+          }
+      }
+      else
+      {
+        const size_t logm = libff::log2(m);
+        if (logm > (Fr<mnt4753_pp>::s)) {
+          err = true;
+          omega = Fr<mnt4753_pp>(1);
+        } else {
+          omega = libff::get_root_of_unity<Fr<mnt4753_pp>>(m, err);
+        }
+      }
+  }
+
+  printf("omega after:\n");
+  omega.mont_repr.print();
+
 
   cl_kernel kernel;                   // compute kernel
   cl_event event;                     // timing
   cl_ulong time_start;
   cl_ulong time_end;
-  int n = 512;
+  unsigned int n = data.size();
+  unsigned int lgn = log2(n);
+  unsigned int max_deg = std::min(MAX_RADIX_DEGREE, lgn);
 
-  libff::G1<mnt4753_pp>* data_x = new libff::G1<mnt4753_pp>[1];              // original data set given to device
-  libff::G1<mnt4753_pp>* data_y = new libff::G1<mnt4753_pp>[n];              // original data set given to device
-  libff::G1<mnt4753_pp>* results = new libff::G1<mnt4753_pp>[1];          // results returned from device
-  
+  Fr<mnt4753_pp>* src_buff = new Fr<mnt4753_pp>[n];
+  Fr<mnt4753_pp>* dst_buff = new Fr<mnt4753_pp>[n];
+  Fr<mnt4753_pp>* pq_buff = new Fr<mnt4753_pp>[1 << MAX_RADIX_DEGREE >> 1];
+  Fr<mnt4753_pp>* om_buff = new Fr<mnt4753_pp>[32]; 
+  Fq<mnt4753_pp> results[n];           // results returned from device
   unsigned int correct;               // number of correct results returned
 
-  cl_mem input_x;                       // device memory used for the input array
-  cl_mem input_y;                       // device memory used for the input array
-  cl_mem ocl_output;                       // device memory used for the input array
+  cl_mem src;
+  cl_mem dst;
+  cl_mem pq;
+  cl_mem om;
   // Fill our data set with field inputs from param gen
   //
   unsigned int count = n;
   mp_size_t num = 1;
-  kern.init(n);
 
-  //memcpy(&data_x[0], &h4_1, sizeof(G1<mnt4753_pp>));
-  data_x[0] = libff::G1<mnt4753_pp>::zero();
-  printf("count %u\n", n);
-  data_x[0].print_coordinates();
 
   for(int i = 0; i < count; i++) {
-    memcpy(&data_y[i], &data_x[0], sizeof(libff::G1<mnt4753_pp>));
+    memcpy(&src_buff[i], &data[i], sizeof(Fr<mnt4753_pp>));
   }
   
+  // setup_pq
+  Fr<mnt4753_pp> tw = omega^(n >> max_deg);
+  pq_buff[0] = Fr<mnt4753_pp>::one();
+  if(max_deg > 1) {
+      pq_buff[1] = tw;
+      for(int i=2; i < (1 << max_deg >> 1); i++) {
+          pq_buff[i] = pq_buff[i-1];
+          pq_buff[i] = pq_buff[i]*tw;
+      }
+  }
+  om_buff[0] = omega;
+  for(int i=1; i<32; i++) {
+    om_buff[i] = om_buff[i-1]^2;
+  }
   
+
   // Create the compute kernel in the program we wish to run
   //
-  kernel = clCreateKernel(kern.program, "multiexp_G1", &kern.err);
+  kernel = clCreateKernel(kern.program, "mnt4753_fft", &kern.err);
   if (!kernel || kern.err != CL_SUCCESS)
   {
       printf("Error: Failed to create compute kernel!\n");
@@ -297,11 +359,12 @@ void mnt4753_libsnark::domain_iFFT_GPU(mnt4753_libsnark::evaluation_domain *doma
   // Create the input and output arrays in device memory for our calculation
   //
   printf("creating buffer\n");
-  input_x = clCreateBuffer(kern.context,  CL_MEM_READ_ONLY,  sizeof(libff::G1<mnt4753_pp>), NULL, NULL);
-  input_y = clCreateBuffer(kern.context,  CL_MEM_READ_ONLY,  sizeof(libff::G1<mnt4753_pp>) * count, NULL, NULL);
-  ocl_output = clCreateBuffer(kern.context, CL_MEM_WRITE_ONLY, sizeof(libff::G1<mnt4753_pp>), NULL, NULL);
+  src = clCreateBuffer(kern.context,  CL_MEM_READ_ONLY,  sizeof(Fr<mnt4753_pp>) * count, NULL, NULL);
+  dst = clCreateBuffer(kern.context,  CL_MEM_READ_ONLY,  sizeof(Fr<mnt4753_pp>) * count, NULL, NULL);
+  pq = clCreateBuffer(kern.context, CL_MEM_WRITE_ONLY, sizeof(Fr<mnt4753_pp>) * (1 << MAX_RADIX_DEGREE >> 1), NULL, NULL);
+  om = clCreateBuffer(kern.context,  CL_MEM_READ_ONLY,  sizeof(Fr<mnt4753_pp>) * 32, NULL, NULL);
 
-  if (!input_x || !ocl_output)
+  if (!src || !dst)
   {
       printf("Error: Failed to allocate device memory!\n");
       exit(1);
@@ -310,16 +373,24 @@ void mnt4753_libsnark::domain_iFFT_GPU(mnt4753_libsnark::evaluation_domain *doma
   // Write our data set into the input array in device memory 
   //
   auto start = high_resolution_clock::now();
-  kern.err = clEnqueueWriteBuffer(kern.commands, input_x, CL_TRUE, 0, sizeof(libff::G1<mnt4753_pp>), data_x, 0, NULL, NULL);
+  // write PQ
+  kern.err = clEnqueueWriteBuffer(kern.commands, pq, CL_TRUE, 0, sizeof(Fr<mnt4753_pp>) *  (1 << MAX_RADIX_DEGREE >> 1), pq_buff, 0, NULL, NULL);
+  if (kern.err != CL_SUCCESS)
+  {
+      printf("Error: Failed to write to pq source array!\n");
+      exit(1);
+  }
+
+  kern.err = clEnqueueWriteBuffer(kern.commands, src, CL_TRUE, 0, sizeof(Fr<mnt4753_pp>) * count, src_buff, 0, NULL, NULL);
   if (kern.err != CL_SUCCESS)
   {
       printf("Error: Failed to write to source array!\n");
       exit(1);
   }
-  kern.err = clEnqueueWriteBuffer(kern.commands, input_y, CL_TRUE, 0, sizeof(libff::G1<mnt4753_pp>) * count, data_y, 0, NULL, NULL);
+  kern.err = clEnqueueWriteBuffer(kern.commands, om, CL_TRUE, 0, sizeof(Fr<mnt4753_pp>) * 32, om_buff, 0, NULL, NULL);
   if (kern.err != CL_SUCCESS)
   {
-      printf("Error: Failed to write to source array!\n");
+      printf("Error: Failed to write to omega source array!\n");
       exit(1);
   }
   auto stop = high_resolution_clock::now();
@@ -327,126 +398,119 @@ void mnt4753_libsnark::domain_iFFT_GPU(mnt4753_libsnark::evaluation_domain *doma
   cout << "Time taken by GPU write function: "
     << duration.count() << " microseconds" << endl;
 
-  // Set the arguments to our compute kernel
-  //
-  kern.err = 0;
-  kern.err  = clSetKernelArg(kernel, 0, sizeof(cl_mem), &input_x);
-  kern.err  = clSetKernelArg(kernel, 1, sizeof(cl_mem), &input_y);
-  kern.err |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &ocl_output);
-  kern.err |= clSetKernelArg(kernel, 3, sizeof(unsigned int), &count);
-  if (kern.err != CL_SUCCESS)
-  {
-      printf("Error: Failed to set kernel arguments! %d\n", kern.err);
-      exit(1);
+  unsigned int lgp = 0;
+  bool in_src = true;
+  while(lgp < lgn) {
+      unsigned int deg = std::min(max_deg, lgn-lgp);
+      unsigned int lwsd = std::min(deg-1, MAX_LOCAL_WORK_SIZE_DEGREE);
+
+      // Set the arguments to our compute kernel
+      //
+      kern.err = 0;
+      kern.err |= clSetKernelArg(kernel, 0, sizeof(cl_mem), in_src ? &src : &dst);
+      kern.err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), in_src ? &dst : &src);
+      kern.err |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &pq);
+      kern.err |= clSetKernelArg(kernel, 3, sizeof(cl_mem), &om);
+      kern.err |= clSetKernelArg(kernel, 4, sizeof(Fr<mnt4753_pp>) * (1 << deg), NULL);
+      kern.err |= clSetKernelArg(kernel, 5, sizeof(unsigned int), &count);
+      kern.err |= clSetKernelArg(kernel, 6, sizeof(unsigned int), &lgp);
+      kern.err |= clSetKernelArg(kernel, 7, sizeof(unsigned int), &deg);
+      kern.err |= clSetKernelArg(kernel, 8, sizeof(unsigned int), &max_deg);
+      if (kern.err != CL_SUCCESS)
+      {
+          printf("Error: Failed to set kernel arguments! %d\n", kern.err);
+          exit(1);
+      }
+
+      // Get the maximum work group size for executing the kernel on the device
+      //
+      kern.err = clGetKernelWorkGroupInfo(kernel, kern.devices[0], CL_KERNEL_WORK_GROUP_SIZE, sizeof(kern.local), &kern.local, NULL);
+      if (kern.err != CL_SUCCESS)
+      {
+          printf("Error: Failed to retrieve kernel work group info! %d\n", kern.err);
+          exit(1);
+      }
+
+      printf("Max work size: %u\n", kern.local);
+
+      // Execute the kernel over the entire range of our 1d input data set
+      // using the maximum number of work group items for this device
+      //
+      kern.global = (n >> deg << lwsd);
+      kern.local = (1 << lwsd);
+      //global = 1;
+      printf("queueing kernel\n");
+      kern.err = clEnqueueNDRangeKernel(kern.commands, kernel, 1, NULL, &kern.global, &kern.local, 0, NULL, &event);
+      if (kern.err)
+      {
+          printf("Error: Failed to execute kernel!\n");
+          exit(1);
+      }
+
+      clWaitForEvents(1, &event);
+      clFinish(kern.commands);
+
+      // Time kernel execution time without read/write
+      //
+      clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(time_start), &time_start, NULL);
+      clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(time_end), &time_end, NULL);
+
+      double nanoSeconds = time_end-time_start;
+      printf("OpenCl Execution time is: %0.3f milliseconds \n",nanoSeconds / 1000000.0);
+
+      lgp+=deg;
+      in_src = !in_src;
   }
 
-  // Get the maximum work group size for executing the kernel on the device
-  //
-  kern.err = clGetKernelWorkGroupInfo(kernel, kern.devices[0], CL_KERNEL_WORK_GROUP_SIZE, sizeof(kern.local), &kern.local, NULL);
-  if (kern.err != CL_SUCCESS)
-  {
-      printf("Error: Failed to retrieve kernel work group info! %d\n", kern.err);
-      exit(1);
-  }
+    // Read back the results from the device to verify the output
+    //
+    start = high_resolution_clock::now();
+    if(in_src) {
+        err = clEnqueueReadBuffer(kern.commands, src, CL_TRUE, 0, sizeof(Fr<mnt4753_pp>) * count, results, 0, NULL, NULL );  
+        if (err != CL_SUCCESS)
+        {
+            printf("Error: Failed to read output array! %d\n", err);
+            exit(1);
+        }
+    } else {
+        err = clEnqueueReadBuffer(kern.commands, dst, CL_TRUE, 0, sizeof(Fr<mnt4753_pp>) * count, results, 0, NULL, NULL );  
+        if (err != CL_SUCCESS)
+        {
+            printf("Error: Failed to read output array! %d\n", err);
+            exit(1);
+        }
+    }
 
-  printf("Max work size: %u\n", kern.local);
+    stop = high_resolution_clock::now();
+    duration = duration_cast<microseconds>(stop - start); 
+    cout << "Time taken by GPU read function: "
+      << duration.count() << " microseconds" << endl;
+    // Validate our results
+    //
+    printf("Kernel Result \n");
+    results[0].print();
 
-  // Execute the kernel over the entire range of our 1d input data set
-  // using the maximum number of work group items for this device
-  //
-  kern.global = count;
-  //global = 1;
-  printf("queueing kernel\n");
-  kern.err = clEnqueueNDRangeKernel(kern.commands, kernel, 1, NULL, &kern.global, &kern.local, 0, NULL, &event);
-  if (kern.err)
-  {
-      printf("Error: Failed to execute kernel!\n");
-      exit(1);
-  }
+    printf("CPU Result\n");
 
-  clWaitForEvents(1, &event);
-  clFinish(kern.commands);
+    correct = 0;
 
-  // Time kernel execution time without read/write
-  //
-  clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(time_start), &time_start, NULL);
-  clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(time_end), &time_end, NULL);
+    // there is some fuckery on the results fqe struct, cant equality check mont_repr
+    // if(results[0] == _h4_1) {
+    //   correct++;
+    // }
 
-  double nanoSeconds = time_end-time_start;
-  printf("OpenCl Execution time is: %0.3f milliseconds \n",nanoSeconds / 1000000.0);
+    
+    // Print a brief summary detailing the results
+    //
+    //printf("Computed '%d/%d' correct fq3 values!\n", correct, count);
+    // Shutdown and cleanup
+    //
 
-  // Read back the results from the device to verify the output
-  //
-  start = high_resolution_clock::now();
-  kern.err = clEnqueueReadBuffer(kern.commands, ocl_output, CL_TRUE, 0, sizeof(libff::G1<mnt4753_pp>), results, 0, NULL, NULL );  
-  if (kern.err != CL_SUCCESS)
-  {
-      printf("Error: Failed to read output array! %d\n", kern.err);
-      exit(1);
-  }
-  stop = high_resolution_clock::now();
-  duration = duration_cast<microseconds>(stop - start); 
-  cout << "Time taken by GPU read function: "
-    << duration.count() << " microseconds" << endl;
-  // Validate our results
-  //
-  printf("Kernel Result \n");
-  results[0].print();
-
-  // results[0].coeff_a.mont_repr.print_hex();
-  // for(int i=0; i<12; i++) {
-  //   //std::cout << "Length of array = " << (sizeof(results[1013].non_residue.mont_repr.data)/sizeof(*results[1013].non_residue.mont_repr.data)) << std::endl;
-  //   cl_uint x;
-  //   cl_uint y;
-  //   x = (cl_uint)((results[0].coeff_a.mont_repr.data[i] & 0xFFFFFFFF00000000LL) >> 32);
-  //   y = (cl_uint)(results[0].coeff_a.mont_repr.data[i] & 0xFFFFFFFFLL);
-  //   gmp_printf("%Mx\n", results[0].coeff_a.mont_repr.data[i]);
-  //   printf("%x\n", x);
-  //   printf("%x\n", y);
-  // }
-
-  results[0].zero().print_coordinates();
-
-  // for(int i=0; i<12; i++) {
-  //   //printf("%x\n", results[1013].c0.mod.data[i]);
-  //   //std::cout << "Length of array = " << (sizeof(results[1013].non_residue.mont_repr.data)/sizeof(*results[1013].non_residue.mont_repr.data)) << std::endl;
-  //   cl_uint x;
-  //   cl_uint y;
-  //   x = (cl_uint)((results[1013].c0.one().mont_repr.data[i] & 0xFFFFFFFF00000000LL) >> 32);
-  //   y = (cl_uint)(results[1013].c0.one().mont_repr.data[i] & 0xFFFFFFFFLL);
-  //   gmp_printf("%Mx\n", results[1013].c0.one().mont_repr.data[i]);
-  //   printf("%x\n", x);
-  //   printf("%x\n", y);
-  // }
-
-  printf("CPU Result\n");
-  //G1<mnt4753_pp> _h4_1 = G1<mnt4753_pp>::zero();
-
-  //for (size_t i = 0; i < n; ++i) { _h4_1 = _h4_1 + g4_1[i]; }
-  // _h4_1 = _h4_1 + g4_1[0];
-  // _h4_1 = _h4_1 + g4_1[1];
-  // _h4_1 = _h4_1 + g4_1[2];
-  // _h4_1 = _h4_1 + g4_1[3];
-  // _h4_1 = _h4_1 + g4_1[4];
-  // _h4_1.print();
-  //  g4_1[1].X().print();
-  correct = 0;
-
-  // there is some fuckery on the results fqe struct, cant equality check mont_repr
-  // if(results[0] == _h4_1) {
-  //   correct++;
-  // }
-
-  
-  // Print a brief summary detailing the results
-  //
-  //printf("Computed '%d/%d' correct fq3 values!\n", correct, count);
-  // Shutdown and cleanup
-  //
-  clReleaseMemObject(input_x);
-  clReleaseMemObject(input_y);
-  clReleaseMemObject(ocl_output);
-  clReleaseProgram(kern.program);
+  clReleaseMemObject(src);
+  clReleaseMemObject(dst);
+  clReleaseMemObject(pq);
+  clReleaseMemObject(om);
+  //clReleaseProgram(kern.program);
   clReleaseKernel(kernel);
   clReleaseCommandQueue(kern.commands);
   clReleaseContext(kern.context);
@@ -765,7 +829,6 @@ void mnt6753_libsnark::domain_iFFT(mnt6753_libsnark::evaluation_domain *domain,
 void mnt6753_libsnark::domain_iFFT_GPU(mnt6753_libsnark::evaluation_domain *domain,
                                    mnt6753_libsnark::vector_Fr *a, Kernel kern) {
   std::vector<Fr<mnt6753_pp>> &data = *a->data;
-  kern.init(10);
 
   cl_kernel kernel;                   // compute kernel
   cl_event event;                     // timing
