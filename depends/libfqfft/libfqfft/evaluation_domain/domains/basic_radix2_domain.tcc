@@ -17,6 +17,8 @@
 #include <libff/algebra/fields/field_utils.hpp>
 #include <libff/common/double.hpp>
 #include <libff/common/utils.hpp>
+#include <libff/algebra/curves/mnt753/mnt4753/mnt4753_pp.hpp>
+#include <libff/algebra/curves/mnt753/mnt6753/mnt6753_pp.hpp>
 
 #include <libfqfft/evaluation_domain/domains/basic_radix2_domain_aux.hpp>
 
@@ -57,6 +59,18 @@ basic_radix2_domain<FieldT>::basic_radix2_domain(const size_t m, bool &err) : ev
           }
         }
     }
+    printf("omega:\n");
+    omega.mont_repr.print();
+  // for(int i=0; i<12; i++) {
+  //   //std::cout << "Length of array = " << (sizeof(results[1013].non_residue.mont_repr.data)/sizeof(*results[1013].non_residue.mont_repr.data)) << std::endl;
+  //   cl_uint x;
+  //   cl_uint y;
+  //   x = (cl_uint)((results[0].coeff_a.mont_repr.data[i] & 0xFFFFFFFF00000000LL) >> 32);
+  //   y = (cl_uint)(results[0].coeff_a.mont_repr.data[i] & 0xFFFFFFFFLL);
+  //   gmp_printf("%Mx\n", results[0].coeff_a.mont_repr.data[i]);
+  //   printf("%x\n", x);
+  //   printf("%x\n", y);
+  // }
 }
 
 template<typename FieldT>
@@ -71,7 +85,7 @@ template<typename FieldT>
 void basic_radix2_domain<FieldT>::iFFT(std::vector<FieldT> &a)
 {
     if (a.size() != this->m) throw DomainSizeException("basic_radix2: expected a.size() == this->m");
-
+    printf("in iFFT function\n");
     _basic_radix2_FFT(a, omega.inverse());
 
     const FieldT sconst = FieldT(a.size()).inverse();

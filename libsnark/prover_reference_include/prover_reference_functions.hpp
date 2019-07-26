@@ -10,32 +10,13 @@
 #include <string.h>
 #include <errno.h>
 #include <exception>
-#include <chrono> 
+#include <chrono>
+#include "ocl_kernels/kernel.hpp"
 using namespace std::chrono;
 using namespace std;
 
-char *getcwd(char *buf, size_t size);
 
-class Kernel {
-  public:
-    char* program_source_code;
-    size_t program_source_code_size;
-    int err;                            // error code returned from api calls
-    char name[128];
-    size_t global;                      // global domain size for our calculation
-    size_t local;                       // local domain size for our calculation
-    cl_device_id device_id;             // compute device id 
-    cl_context context;                 // compute context
-    cl_command_queue commands;          // compute command queue
-    cl_program program;                 // compute program
-    cl_device_id *devices;
 
-    void init(int n);
-
-    void iFFT();
-    void multiexp_G1();
-    void multiexp_G2();
-};
 
 
 class mnt4753_libsnark {

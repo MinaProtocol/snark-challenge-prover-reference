@@ -43,6 +43,7 @@ extended_radix2_domain<FieldT>::extended_radix2_domain(const size_t m, bool &err
     small_m = m/2;
     omega = libff::get_root_of_unity<FieldT>(small_m, err);
     shift = libff::coset_shift<FieldT>();
+    printf("in extended radix-2\n");
 }
 
 template<typename FieldT>

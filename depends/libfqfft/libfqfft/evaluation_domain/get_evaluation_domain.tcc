@@ -58,6 +58,8 @@ size_t best_mixed_domain_size(const size_t min_size)
 template<typename FieldT>
 std::shared_ptr<evaluation_domain<FieldT> > get_evaluation_domain(const size_t min_size)
 {
+    printf("weeeeeeee\n");
+    printf("min_size:%u\n", min_size);
     std::shared_ptr<evaluation_domain<FieldT> > result;
 
     const size_t big = 1ul<<(libff::log2(min_size)-1);
