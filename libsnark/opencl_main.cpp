@@ -28,6 +28,7 @@ print_time(T &t1, const char *str) {
 template<typename B>
 typename B::vector_Fr *compute_H(
     size_t d,
+    Kernel k,
     typename B::vector_Fr *ca,
     typename B::vector_Fr *cb,
     typename B::vector_Fr *cc)
@@ -35,14 +36,11 @@ typename B::vector_Fr *compute_H(
     // Begin witness map
     printf("Compute the polynomial H\n");
 
-    Kernel k;
-    k.init(16384);
-
     auto domain = B::get_evaluation_domain(d + 1);
 
     //domain->iFFT(ca);
     //domain->iFFT(cb);
-    B::domain_iFFT(domain, ca);
+    //B::domain_iFFT(domain, ca);
     B::domain_iFFT_GPU(domain, ca, k);
     B::domain_iFFT(domain, cb);
 
@@ -97,6 +95,7 @@ typename B::vector_Fr *compute_H(
 
 template<typename B>
 int run_prover(
+    Kernel k,
     const char* params_path,
     const char* input_path,
     const char* output_path)
@@ -122,7 +121,7 @@ int run_prover(
     printf("Call to r1cs_gg_ppzksnark_prover\n");
 
     auto coefficients_for_H =
-        compute_H<B>(B::params_d(params), B::input_ca(input), B::input_cb(input),
+        compute_H<B>(B::params_d(params), k, B::input_ca(input), B::input_cb(input),
                      B::input_cc(input));
 
     printf("Compute the proof\n");
@@ -132,6 +131,9 @@ int run_prover(
     printf("A G1 multiexp\n");
     typename B::G1 *evaluation_At = B::multiexp_G1(
         B::input_w(input), B::params_A(params), B::params_m(params) + 1);
+    printf("A G1 multiexp GPU\n");
+    typename B::G1 *evaluation_At_GPU = B::multiexp_G1_GPU(
+        B::input_w(input), B::params_A(params), B::params_m(params) + 1, k);
 
     printf("B G1 multiexp\n");
     typename B::G1 *evaluation_Bt1 = B::multiexp_G1(
@@ -185,14 +187,17 @@ int main(int argc, const char * argv[])
   const char* params_path = argv[3];
   const char* input_path = argv[4];
   const char* output_path = argv[5];
+  
+  Kernel k;
+  k.init(16384);
 
   if (curve == "MNT4753") {
     if (mode == "compute") {
-      return run_prover<mnt4753_libsnark>(params_path, input_path, output_path);
+      return run_prover<mnt4753_libsnark>(k, params_path, input_path, output_path);
     }
   } else if (curve == "MNT6753") {
     if (mode == "compute") {
-      return run_prover<mnt6753_libsnark>(params_path, input_path, output_path);
+      return run_prover<mnt6753_libsnark>(k, params_path, input_path, output_path);
     }
   }
 }

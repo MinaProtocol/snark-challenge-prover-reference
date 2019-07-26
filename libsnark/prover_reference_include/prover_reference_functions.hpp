@@ -66,6 +66,8 @@ public:
 
   static G1 *multiexp_G1(vector_Fr *scalar_start, vector_G1 *g_start,
                          size_t length);
+  static G1 *multiexp_G1_GPU(vector_Fr *scalar_start, vector_G1 *g_start,
+                         size_t length, Kernel k);
   static G2 *multiexp_G2(vector_Fr *scalar_start, vector_G2 *g_start,
                          size_t length);
 
@@ -146,6 +148,8 @@ public:
 
   static G1 *multiexp_G1(vector_Fr *scalar_start, vector_G1 *g_start,
                          size_t length);
+  static G1 *multiexp_G1_GPU(vector_Fr *scalar_start, vector_G1 *g_start,
+                         size_t length, Kernel k);
   static G2 *multiexp_G2(vector_Fr *scalar_start, vector_G2 *g_start,
                          size_t length);
 

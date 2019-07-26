@@ -109,7 +109,7 @@ T opt_window_wnaf_exp(const T &base, const bigint<n> &scalar, const size_t scala
             break;
         }
     }
-
+    printf("Best Window Size: %u\n", best);
     if (best > 0)
     {
         return fixed_window_wnaf_exp(best, base, scalar);

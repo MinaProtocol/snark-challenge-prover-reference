@@ -125,6 +125,7 @@ T multi_exp_inner(
     typename std::vector<FieldT>::const_iterator scalar_start,
     typename std::vector<FieldT>::const_iterator scalar_end)
 {
+    //printf("multi_exp_inner overload 1\n");
     T result(T::zero());
 
     typename std::vector<T>::const_iterator vec_it;
@@ -148,6 +149,7 @@ T multi_exp_inner(
     typename std::vector<FieldT>::const_iterator scalar_start,
     typename std::vector<FieldT>::const_iterator scalar_end)
 {
+    //printf("multi_exp_inner overload 2\n");
     T result(T::zero());
 
     typename std::vector<T>::const_iterator vec_it;
@@ -170,6 +172,7 @@ T multi_exp_inner(
     typename std::vector<FieldT>::const_iterator exponents,
     typename std::vector<FieldT>::const_iterator exponents_end)
 {
+    //printf("multi_exp_inner overload 3\n");
     UNUSED(exponents_end);
     size_t length = bases_end - bases;
 
@@ -191,6 +194,7 @@ T multi_exp_inner(
     size_t num_groups = (num_bits + c - 1) / c;
 
     T result;
+
     bool result_nonzero = false;
 
     for (size_t k = num_groups - 1; k <= num_groups; k--)
@@ -289,6 +293,7 @@ T multi_exp_inner(
     typename std::vector<FieldT>::const_iterator scalar_start,
     typename std::vector<FieldT>::const_iterator scalar_end)
 {
+    //printf("multi_exp_inner overload 4\n");
     const mp_size_t n = std::remove_reference<decltype(*scalar_start)>::type::num_limbs;
 
     if (vec_start == vec_end)
@@ -406,7 +411,9 @@ T multi_exp(typename std::vector<T>::const_iterator vec_start,
             typename std::vector<FieldT>::const_iterator scalar_end,
             const size_t chunks)
 {
+    printf("In multi_exp libff/salar_mul/multiexp\n");
     const size_t total = vec_end - vec_start;
+    printf("total:%u ... chunks:%u\n", total, chunks);
     if ((total < chunks) || (chunks == 1))
     {
         // no need to split into "chunks", can call implementation directly

@@ -604,3 +604,56 @@ __kernel void mnt4753_fft(
     y[(i+counth)*p] = u[bitreverse(i + counth, deg)];
   }
 }
+
+// Multi_exp functions
+//
+
+#define WINDOW_SIZE (4)
+#define TABLE_SIZE ((1 << WINDOW_SIZE) - 1)
+
+__kernel void G1_generate_table(
+    __global MNT_G1 *bases,
+    __global bool *dm,
+    uint skip,
+    uint n) {
+  uint32 gid = get_global_id(0);
+  bases += skip + gid;
+  //if(dm[gid])
+  //  for(uint j = 1; j < TABLE_SIZE; j++)
+  //    if(j & 1) bases[j * n] = POINT_double(bases[(j >> 1) * n]);
+  //    else bases[j * n] = POINT_add(bases[(j - 1) * n], bases[0], true);
+}
+
+__kernel void G1_batched_lookup_multiexp(
+    __global MNT_G1 *bases,
+    __global MNT_G1 *results,
+    __global ulong4 *exps,
+    __global bool *dm,
+    uint skip,
+    uint n) {
+  uint32 work = get_global_id(0);
+  uint32 works = get_global_size(0);
+
+  uint len = (uint)ceil(n / (float)works);
+  uint32 nstart = len * work;
+  uint32 nend = min(nstart + len, n);
+
+  bases += skip;
+
+  POINT_projective p = POINT_ZERO;
+  ushort bits = 0;
+  while(bits < 256) {
+    ushort w = min((ushort)WINDOW_SIZE, (ushort)(256 - bits));
+    for(uint j = 0; j < w; j++)
+      p = POINT_double(p);
+    for(uint j = nstart; j < nend; j++) {
+      if(dm[j]) {
+        uint ind = get_bits(exps[j], bits, w);
+        if(ind)
+          p = POINT_add(p, bases[j + (ind - 1) * n], false);
+      }
+    }
+    bits += w;
+  }
+  results[work] = p;
+}
