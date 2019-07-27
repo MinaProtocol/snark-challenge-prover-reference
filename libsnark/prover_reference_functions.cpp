@@ -577,8 +577,8 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
   
   bool skip = 0;
   bool *dm = new bool[length];
-  libff::G1<mnt4753_pp> result;           // results returned from device
-  unsigned int correct;               // number of correct results returned
+  libff::G1<mnt4753_pp> result; 
+  unsigned int correct;
 
   cl_mem g1_base_buffer;
   cl_mem g1_result_buffer;

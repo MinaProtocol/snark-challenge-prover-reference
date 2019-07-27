@@ -49,6 +49,28 @@ void print(int768 v) {
     v.v[23],v.v[22],v.v[21],v.v[20],v.v[19],v.v[18],v.v[17],v.v[16],v.v[15],v.v[14],v.v[13],v.v[12], v.v[11],v.v[10],v.v[9],v.v[8],v.v[7],v.v[6],v.v[5],v.v[4],v.v[3],v.v[2],v.v[1],v.v[0]);
 }
 
+
+bool get_bit(ulong4 l, uint i) {
+  if(i < 64)
+    return (l.s3 >> (63 - i)) & 1;
+  else if(i < 128)
+    return (l.s2 >> (127 - i)) & 1;
+  else if(i < 192)
+    return (l.s1 >> (191 - i)) & 1;
+  else
+    return (l.s0 >> (255 - i)) & 1;
+}
+
+uint get_bits(ulong4 l, uint skip, uint window) {
+  uint ret = 0;
+  for(uint i = 0; i < window; i++) {
+    ret <<= 1;
+    ret |= get_bit(l, skip + i);
+  }
+  return ret;
+}
+
+
 // Greater than or equal
 bool int768_gte(int768 a, int768 b) {
   for(int i = FIELD_LIMBS - 1; i >= 0; i--){
@@ -507,6 +529,33 @@ MNT_G1 G1_add4(MNT_G1 a, MNT_G1 b) {
   return res;
 }
 
+MNT_G1 G1_double4(MNT_G1 a) {
+
+  MNT_G1 res = G1_ZERO;
+
+  int768 XX = int768_mul4(a.X_, a.X_); // todo special case squaring
+  int768 ZZ = int768_mul4(a.Z_, a.Z_);
+  int768 TXX = int768_add4(XX, XX);
+  TXX = int768_add4(TXX, XX);
+  int768 w = int768_add4(int768_mul4(G1_COEFF_A, ZZ), TXX);
+  int768 Y1_Z1 = int768_mul4(a.Y_, a.Z_);
+  int768 s = int768_add4(Y1_Z1, Y1_Z1);
+  int768 ss = int768_mul4(s, s);
+  int768 sss = int768_mul4(s, ss);
+  int768 R = int768_mul4(a.Y_, s);
+  int768 RR = int768_mul4(R, R);
+  int768 XRR = int768_add4(a.X_, RR);
+  int768 B = int768_sub4(XRR, int768_sub4(XX, RR));
+  int768 h = int768_sub4(int768_mul4(w, w), int768_add4(B, B));
+  int768 X3 = int768_mul4(h, s);
+  int768 Y3 = int768_mul4(w, int768_sub4(int768_sub4(B, h), int768_add4(R,R)));
+  res.X_ = X3;
+  res.Y_ = Y3;
+  res.Z_ = sss;
+  return res;
+}
+
+
 MNT_G1 G1_mixed_add4(MNT_G1 a, MNT_G1 b) {
   
 }
@@ -519,26 +568,6 @@ MNT_G1 G1_mixed_add6(MNT_G1 a, MNT_G1 b) {
   
 }
 
-
-__kernel void multiexp_G1(
-    __global MNT_G1* input_h1,
-    __global MNT_G1* input_g1,
-    __global MNT_G1* output_h1,
-    const unsigned int count)
-{
-  int i = get_global_id(0);
-  //output_y[i] = int768_fq3_mul(input_y0[i], input_y1[i]);
-  //output_y[i] = int768_fq3_add(input_y0[i], input_y1[i]);
-  //output_h1[0].X_ = input_g1[1].X_;
-  output_h1[0] = G1_add4(input_h1[0], input_g1[0]);
-  //for(int j=0; j < count; j++) {
-  //  output_h1[0] = G1_add4(output_h1[0], input_g1[j]);
-  //}
-  output_h1[0] = G1_add4(output_h1[0], input_g1[1]);
-  output_h1[0] = G1_add4(output_h1[0], input_g1[2]);
-  output_h1[0] = G1_add4(output_h1[0], input_g1[3]);
-  output_h1[0] = G1_add4(output_h1[0], input_g1[4]);
-}
 
 
 __kernel void mnt4753_fft(
@@ -618,10 +647,10 @@ __kernel void G1_generate_table(
     uint n) {
   uint32 gid = get_global_id(0);
   bases += skip + gid;
-  //if(dm[gid])
-  //  for(uint j = 1; j < TABLE_SIZE; j++)
-  //    if(j & 1) bases[j * n] = POINT_double(bases[(j >> 1) * n]);
-  //    else bases[j * n] = POINT_add(bases[(j - 1) * n], bases[0], true);
+  if(dm[gid]) 
+    for(uint j = 1; j < TABLE_SIZE; j++)
+      if(j & 1) bases[j * n] = G1_double4(bases[(j >> 1) * n]);
+      else bases[j * n] = G1_add4(bases[(j - 1) * n], bases[0]);
 }
 
 __kernel void G1_batched_lookup_multiexp(
@@ -640,17 +669,17 @@ __kernel void G1_batched_lookup_multiexp(
 
   bases += skip;
 
-  POINT_projective p = POINT_ZERO;
+  MNT_G1 p = G1_ZERO;
   ushort bits = 0;
   while(bits < 256) {
     ushort w = min((ushort)WINDOW_SIZE, (ushort)(256 - bits));
     for(uint j = 0; j < w; j++)
-      p = POINT_double(p);
+      p = G1_double4(p);
     for(uint j = nstart; j < nend; j++) {
       if(dm[j]) {
         uint ind = get_bits(exps[j], bits, w);
         if(ind)
-          p = POINT_add(p, bases[j + (ind - 1) * n], false);
+          p = G1_add4(p, bases[j + (ind - 1) * n]);
       }
     }
     bits += w;
