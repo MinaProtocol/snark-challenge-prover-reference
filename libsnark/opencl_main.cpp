@@ -42,6 +42,8 @@ typename B::vector_Fr *compute_H(
     //domain->iFFT(cb);
     //B::domain_iFFT(domain, ca);
     B::domain_iFFT_GPU(domain, ca, k);
+    B::domain_iFFT(domain, ca);
+    
     B::domain_iFFT(domain, cb);
 
     B::domain_cosetFFT(domain, ca);
