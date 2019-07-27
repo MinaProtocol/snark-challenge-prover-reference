@@ -647,10 +647,9 @@ __kernel void G1_generate_table(
     uint n) {
   uint32 gid = get_global_id(0);
   bases += skip + gid;
-  if(dm[gid]) 
-    for(uint j = 1; j < TABLE_SIZE; j++)
-      if(j & 1) bases[j * n] = G1_double4(bases[(j >> 1) * n]);
-      else bases[j * n] = G1_add4(bases[(j - 1) * n], bases[0]);
+  for(uint j = 1; j < TABLE_SIZE; j++)
+    if(j & 1) bases[j * n] = G1_double4(bases[(j >> 1) * n]);
+    else bases[j * n] = G1_add4(bases[(j - 1) * n], bases[0]);
 }
 
 __kernel void G1_batched_lookup_multiexp(
@@ -677,7 +676,8 @@ __kernel void G1_batched_lookup_multiexp(
       p = G1_double4(p);
     for(uint j = nstart; j < nend; j++) {
       if(dm[j]) {
-        uint ind = get_bits(exps[j], bits, w);
+        //uint ind = get_bits(exps[j], bits, w);
+        uint ind = 0;
         if(ind)
           p = G1_add4(p, bases[j + (ind - 1) * n]);
       }

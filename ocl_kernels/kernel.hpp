@@ -123,7 +123,7 @@ class Kernel {
         //
         printf("building program\n");
         char options[] = "-cl-opt-disable";
-        err = clBuildProgram(program, num_devices, devices, options, NULL, NULL);
+        err = clBuildProgram(program, num_devices, devices, NULL, NULL, NULL);
         if (err != CL_SUCCESS)
         {
             size_t len;
