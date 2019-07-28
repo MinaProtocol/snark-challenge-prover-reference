@@ -736,7 +736,7 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
   clFinish(kern.commands);
 
   libff::G1<mnt4753_pp> acc = libff::G1<mnt4753_pp>::zero();
-  libff::G1<mnt4753_pp> *res = new libff::G1<mnt4753_pp>[length];
+  libff::G1<mnt4753_pp> *res = new libff::G1<mnt4753_pp>[NUM_WORKS];
 
   // Time kernel execution time without read/write
   //
@@ -751,7 +751,7 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
   //
   start = high_resolution_clock::now();
 
-  kern.err = clEnqueueReadBuffer(kern.commands, g1_result_buffer, CL_TRUE, 0, sizeof(libff::G1<mnt4753_pp>) * count, res, 0, NULL, NULL );  
+  kern.err = clEnqueueReadBuffer(kern.commands, g1_result_buffer, CL_TRUE, 0, sizeof(libff::G1<mnt4753_pp>) * NUM_WORKS, res, 0, NULL, NULL );  
   if (kern.err != CL_SUCCESS)
   {
       printf("Error: Failed to read output array! %d\n", kern.err);
@@ -767,7 +767,6 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
   printf("Kernel Result \n");
   res[0].print();
 
-  correct = 0;
 
   // if(results[0] == _h4_1) {
   //   correct++;

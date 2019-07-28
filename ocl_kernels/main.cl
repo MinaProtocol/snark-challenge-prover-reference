@@ -50,67 +50,18 @@ void print(int768 v) {
 }
 
 
-bool get_bit(int768 l, uint i) {
-
-  if(i < 32)
-    return (l.v[23] >> (31 - i)) & 1;
-  else if(i < 64)
-    return (l.v[22] >> (63 - i)) & 1;
-  else if(i < 96)
-    return (l.v[21] >> (95 - i)) & 1;
-  else if(i < 128)
-    return (l.v[20] >> (127 - i)) & 1;
-  else if(i < 160)
-    return (l.v[19] >> (159 - i)) & 1;
-  else if(i < 192)
-    return (l.v[18] >> (192 - i)) & 1;
-  else if(i < 224)
-    return (l.v[17] >> (223 - i)) & 1;
-  else if(i < 256)
-    return (l.v[16] >> (255 - i)) & 1;
-  else if(i < 288)
-    return (l.v[15] >> (287 - i)) & 1;
-  else if(i < 320)
-    return (l.v[14] >> (319 - i)) & 1;
-  else if(i < 352)
-    return (l.v[13] >> (351 - i)) & 1;
-  else if(i < 384)
-    return (l.v[12] >> (383 - i)) & 1;
-  else if(i < 416)
-    return (l.v[11] >> (415 - i)) & 1;
-  else if(i < 448)
-    return (l.v[10] >> (447 - i)) & 1;
-  else if(i < 480)
-    return (l.v[9] >> (479 - i)) & 1;
-  else if(i < 512)
-    return (l.v[8] >> (511 - i)) & 1;
-  else if(i < 544)
-    return (l.v[7] >> (543 - i)) & 1;
-  else if(i < 576)
-    return (l.v[6] >> (575 - i)) & 1;
-  else if(i < 608)
-    return (l.v[5] >> (607 - i)) & 1;
-  else if(i < 640)
-    return (l.v[4] >> (639 - i)) & 1;
-  else if(i < 672)
-    return (l.v[3] >> (671 - i)) & 1;
-  else if(i < 704)
-    return (l.v[2] >> (703 - i)) & 1;
-  else if(i < 736)
-    return (l.v[1] >> (735 - i)) & 1;
-  else
-    return (l.v[0] >> (767 - i)) & 1;
+bool int768_get_bit(int768 l, uint i) {
+  return (l.v[FIELD_LIMBS - 1 - i / LIMB_BITS] >> (LIMB_BITS - 1 - (i % LIMB_BITS))) & 1;
 }
 
-uint get_bits(int768 l, uint skip, uint window) {
+uint int768_get_bits(int768 l, uint skip, uint window) {
   uint ret = 0;
   for(uint i = 0; i < window; i++) {
     ret <<= 1;
-    ret |= get_bit(l, skip + i);
+    ret |= int768_get_bit(l, skip + i);
   }
   return ret;
 }
-
 
 // Greater than or equal
 bool int768_gte(int768 a, int768 b) {
@@ -696,7 +647,7 @@ __kernel void G1_generate_table(
 __kernel void G1_batched_lookup_multiexp(
     __global MNT_G1 *bases,
     __global MNT_G1 *results,
-    __global ulong4 *exps,
+    __global int768 *exps,
     __global bool *dm,
     uint skip,
     uint n) {
@@ -717,7 +668,7 @@ __kernel void G1_batched_lookup_multiexp(
     for(uint j = 0; j < w; j++)
       p = G1_double4(p);
     for(uint j = nstart; j < nend; j++) {
-      uint ind = get_bits(exps[j], bits, w);
+      uint ind = int768_get_bits(exps[j], bits, w);
       //uint ind = 0;
       if(ind)
         p = G1_add4(p, bases[j + (ind - 1) * n]);
