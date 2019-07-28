@@ -629,51 +629,45 @@ __kernel void mnt4753_fft(
 // Multi_exp functions
 //
 
-#define WINDOW_SIZE (4)
-#define TABLE_SIZE ((1 << WINDOW_SIZE) - 1)
-
-__kernel void G1_generate_table(
-    __global MNT_G1 *bases,
-    __global bool *dm,
-    uint skip,
-    uint n) {
-  uint32 gid = get_global_id(0);
-  bases += skip + gid;
-  for(uint j = 1; j < TABLE_SIZE; j++)
-    if(j & 1) bases[j * n] = G1_double4(bases[(j >> 1) * n]);
-    else bases[j * n] = G1_add4(bases[(j - 1) * n], bases[0]);
-}
+#define NUM_WORKS (192)
+#define NUM_WINDOWS (37)
+#define WINDOW_SIZE (7)
+#define BUCKET_LEN ((1 << WINDOW_SIZE) - 1)
 
 __kernel void G1_batched_lookup_multiexp(
     __global MNT_G1 *bases,
+    __global MNT_G1 *buckets,
     __global MNT_G1 *results,
     __global int768 *exps,
     __global bool *dm,
     uint skip,
     uint n) {
-  uint32 work = get_global_id(0);
-  uint32 works = get_global_size(0);
 
-  uint len = (uint)ceil(n / (float)works);
-  uint32 nstart = len * work;
-  uint32 nend = min(nstart + len, n);
+  uint32 gid = get_global_id(0);
 
   bases += skip;
+  buckets += BUCKET_LEN * gid;
+  for(uint i = 0; i < BUCKET_LEN; i++) buckets[i] = G1_ZERO;
 
-  MNT_G1 p = G1_ZERO;
-  ushort bits = 0;
-  // not sure if extra 15 bits matters
-  while(bits < 768) {
-    ushort w = min((ushort)WINDOW_SIZE, (ushort)(768 - bits));
-    for(uint j = 0; j < w; j++)
-      p = G1_double4(p);
-    for(uint j = nstart; j < nend; j++) {
-      uint ind = int768_get_bits(exps[j], bits, w);
-      //uint ind = 0;
-      if(ind)
-        p = G1_add4(p, bases[j + (ind - 1) * n]);
-    }
-    bits += w;
+  uint len = (uint)ceil(n / (float)NUM_WORKS);
+  uint32 nstart = len * (gid / NUM_WINDOWS);
+  uint32 nend = min(nstart + len, n);
+
+  uint bits = (gid % NUM_WINDOWS) * WINDOW_SIZE;
+  ushort w = min((ushort)WINDOW_SIZE, (ushort)(256 - bits));
+
+  MNT_G1 res = G1_ZERO;
+  for(uint i = nstart; i < nend; i++) {
+    uint ind = int768_get_bits(exps[i], bits, w);
+    if(bits == 0 && ind == 1) res = G1_add4(res, bases[i]);
+    else if(ind--) buckets[ind] = G1_add4(buckets[ind], bases[i]);
   }
-  results[work] = p;
+
+  MNT_G1 acc = G1_ZERO;
+  for(int j = BUCKET_LEN - 1; j >= 0; j--) {
+    acc = G1_add4(acc, buckets[j]);
+    res = G1_add4(res, acc);
+  }
+
+  results[gid] = res;
 }

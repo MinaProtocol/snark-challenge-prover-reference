@@ -556,9 +556,11 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
                               mnt4753_libsnark::vector_G1 *g_start,
                               size_t length, Kernel kern) {
   printf("GPU MULTI_EXP START\n");
-  size_t NUM_WORKS  = 3584;
-  size_t WINDOW_SIZE = 4;
+  size_t NUM_GROUPS  = 192;
+  size_t WINDOW_SIZE = 7;
+  size_t NUM_WINDOWS = 37;
   size_t TABLE_SIZE = 1 << WINDOW_SIZE;
+  size_t BUCKET_LEN = 1 << WINDOW_SIZE;
 
   std::vector<Fr<mnt4753_pp>> &scalar_data = *scalar_start->data;
   std::vector<libff::G1<mnt4753_pp>> &g_data = *g_start->data;
@@ -569,7 +571,6 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
   
   // compute table with kernel
   cl_kernel kernel;                   // compute kernel
-  cl_kernel table_kernel;                   // compute kernel
   cl_event event;                     // timing
   cl_ulong time_start;
   cl_ulong time_end;
@@ -582,6 +583,7 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
 
   cl_mem g1_base_buffer;
   cl_mem g1_result_buffer;
+  cl_mem g1_bucket_buffer;
   cl_mem exp_buffer;
   // not sure how to handle the skip buffer, i dont see it in libsnark yet
   // /depends/libff/algebra/scalar_mul/multiexp.tcc appears to have the impl
@@ -601,29 +603,22 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
       exit(1);
   }
 
-  // Create the compute kernel in the program we wish to run
-  //
-  table_kernel = clCreateKernel(kern.program, "G1_generate_table", &kern.err);
-  if (!table_kernel || kern.err != CL_SUCCESS)
-  {
-      printf("Error: Failed to create compute kernel!\n");
-      exit(1);
-  }
 
   // Create the input and output arrays in device memory for our calculation
   //
   printf("creating buffer\n");
-  g1_base_buffer = clCreateBuffer(kern.context,  CL_MEM_READ_WRITE,  sizeof(libff::G1<mnt4753_pp>) * count * TABLE_SIZE, NULL, NULL);
-  g1_result_buffer = clCreateBuffer(kern.context,  CL_MEM_READ_WRITE,  sizeof(libff::G1<mnt4753_pp>) * NUM_WORKS, NULL, NULL);
+  g1_base_buffer = clCreateBuffer(kern.context,  CL_MEM_READ_WRITE,  sizeof(libff::G1<mnt4753_pp>) * count, NULL, NULL);
+  g1_result_buffer = clCreateBuffer(kern.context,  CL_MEM_READ_WRITE,  sizeof(libff::G1<mnt4753_pp>) * NUM_WINDOWS * NUM_GROUPS, NULL, NULL);
+  g1_bucket_buffer = clCreateBuffer(kern.context,  CL_MEM_READ_WRITE,  sizeof(libff::G1<mnt4753_pp>) * BUCKET_LEN * NUM_WINDOWS * NUM_GROUPS, NULL, NULL);
   exp_buffer = clCreateBuffer(kern.context,  CL_MEM_READ_WRITE,  sizeof(Fr<mnt4753_pp>) * count, NULL, NULL);
   dm_buffer = clCreateBuffer(kern.context, CL_MEM_READ_ONLY, sizeof(bool) * count, NULL, NULL);
   //res = clCreateBuffer(kern.context,  CL_MEM_READ_ONLY,  sizeof(libff::G1<mnt4753_pp>), NULL, NULL);
 
-  if (!g1_base_buffer || !g1_result_buffer)
-  {
-      printf("Error: Failed to allocate device memory!\n");
-      exit(1);
-  }
+  // if (!g1_base_buffer || !g1_result_buffer)
+  // {
+  //     printf("Error: Failed to allocate device memory!\n");
+  //     exit(1);
+  // }
   // Write our data set into the input array in device memory 
   //
   auto start = high_resolution_clock::now();
@@ -654,66 +649,17 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
   cout << "Time taken by GPU write function: "
     << duration.count() << " microseconds" << endl;
 
-
-  // Set the arguments to our compute kernel
-  //
-  kern.err = 0;
-  kern.err = clSetKernelArg(table_kernel, 0, sizeof(cl_mem), &g1_base_buffer);
-  kern.err = clSetKernelArg(table_kernel, 1, sizeof(cl_mem), &dm_buffer);
-  kern.err = clSetKernelArg(table_kernel, 2, sizeof(unsigned int), &skip);
-  kern.err = clSetKernelArg(table_kernel, 3, sizeof(unsigned int), &length);
-  if (kern.err != CL_SUCCESS)
-  {
-      printf("Error: Failed to set kernel arguments! %d\n", kern.err);
-      exit(1);
-  }
-
-  // get work group info
-  kern.err = clGetKernelWorkGroupInfo(kernel, kern.devices[0], CL_KERNEL_WORK_GROUP_SIZE, sizeof(kern.local), &kern.local, NULL);
-  if (kern.err != CL_SUCCESS)
-  {
-      printf("Error: Failed to retrieve kernel work group info! %d\n", kern.err);
-      exit(1);
-  }
-  printf("Max work size: %u\n", kern.local);
-
-  // Execute the kernel over the entire range of our 1d input data set
-  // using the maximum number of work group items for this device
-  //
-  kern.global = length;
-  printf("queueing table kernel\n");
-  printf("%u\n", sizeof(libff::G1<mnt4753_pp>) * count * TABLE_SIZE);
-  printf("%u\n", scalar_data[0].num_bits);
-  //exit(1);
-
-  kern.err = clEnqueueNDRangeKernel(kern.commands, table_kernel, 1, NULL, &kern.global, &kern.local, 0, NULL, &event);
-  if (kern.err)
-  {
-      printf("Error: Failed to execute kernel!\n");
-      exit(1);
-  }
-
-  clWaitForEvents(1, &event);
-  clFinish(kern.commands);
-
-  // Time kernel execution time without read/write
-  //
-  clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(time_start), &time_start, NULL);
-  clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(time_end), &time_end, NULL);
-
-  double nanoSeconds = time_end-time_start;
-  printf("OpenCl Execution time is: %0.3f milliseconds \n",nanoSeconds / 1000000.0);
-
   
   // Set the arguments to our compute kernel
   //
   kern.err = 0;
   kern.err |= clSetKernelArg(kernel, 0, sizeof(cl_mem), &g1_base_buffer);
-  kern.err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &g1_result_buffer);
-  kern.err |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &exp_buffer);
-  kern.err |= clSetKernelArg(kernel, 3, sizeof(cl_mem), &dm_buffer);
-  kern.err |= clSetKernelArg(kernel, 4, sizeof(unsigned int), &skip);
-  kern.err |= clSetKernelArg(kernel, 5, sizeof(unsigned int), &length);
+  kern.err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &g1_bucket_buffer);
+  kern.err |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &g1_result_buffer);
+  kern.err |= clSetKernelArg(kernel, 3, sizeof(cl_mem), &exp_buffer);
+  kern.err |= clSetKernelArg(kernel, 4, sizeof(cl_mem), &dm_buffer);
+  kern.err |= clSetKernelArg(kernel, 5, sizeof(unsigned int), &skip);
+  kern.err |= clSetKernelArg(kernel, 6, sizeof(unsigned int), &length);
   if (kern.err != CL_SUCCESS)
   {
       printf("Error: Failed to set kernel arguments! %d\n", kern.err);
@@ -722,7 +668,7 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
 
 
   printf("queueing multi exp kernel\n");
-  kern.global = NUM_WORKS;
+  kern.global = NUM_WINDOWS * NUM_GROUPS;
   kern.local = 128;
   kern.err = clEnqueueNDRangeKernel(kern.commands, kernel, 1, NULL, &kern.global, &kern.local, 0, NULL, &event);
   if (kern.err)
@@ -736,14 +682,14 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
   clFinish(kern.commands);
 
   libff::G1<mnt4753_pp> acc = libff::G1<mnt4753_pp>::zero();
-  libff::G1<mnt4753_pp> *res = new libff::G1<mnt4753_pp>[NUM_WORKS];
+  libff::G1<mnt4753_pp> *res = new libff::G1<mnt4753_pp>[NUM_WINDOWS * NUM_GROUPS];
 
   // Time kernel execution time without read/write
   //
   clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(time_start), &time_start, NULL);
   clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(time_end), &time_end, NULL);
 
-  nanoSeconds = time_end-time_start;
+  double nanoSeconds = time_end-time_start;
   printf("OpenCl Execution time is: %0.3f milliseconds \n",nanoSeconds / 1000000.0);
 
   
@@ -751,7 +697,7 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
   //
   start = high_resolution_clock::now();
 
-  kern.err = clEnqueueReadBuffer(kern.commands, g1_result_buffer, CL_TRUE, 0, sizeof(libff::G1<mnt4753_pp>) * NUM_WORKS, res, 0, NULL, NULL );  
+  kern.err = clEnqueueReadBuffer(kern.commands, g1_result_buffer, CL_TRUE, 0, sizeof(libff::G1<mnt4753_pp>) * NUM_WINDOWS * NUM_GROUPS, res, 0, NULL, NULL );  
   if (kern.err != CL_SUCCESS)
   {
       printf("Error: Failed to read output array! %d\n", kern.err);
@@ -781,11 +727,11 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
 
   clReleaseMemObject(g1_base_buffer);
   clReleaseMemObject(g1_result_buffer);
+  clReleaseMemObject(g1_bucket_buffer);
   clReleaseMemObject(dm_buffer);
   clReleaseMemObject(exp_buffer);
   //clReleaseProgram(kern.program);
   clReleaseKernel(kernel);
-  clReleaseKernel(table_kernel);
   //clReleaseCommandQueue(kern.commands);
   //clReleaseContext(kern.context);
   // OPENCL END
