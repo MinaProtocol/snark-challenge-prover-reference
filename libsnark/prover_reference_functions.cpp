@@ -542,10 +542,13 @@ mnt4753_libsnark::multiexp_G1(mnt4753_libsnark::vector_Fr *scalar_start,
                               mnt4753_libsnark::vector_G1 *g_start,
                               size_t length) {
 
-  return new mnt4753_libsnark::G1{
+  mnt4753_libsnark::G1 *t = new mnt4753_libsnark::G1{
       multiexp<libff::G1<mnt4753_pp>, Fr<mnt4753_pp>>(
           scalar_start->data->begin() + scalar_start->offset,
           g_start->data->begin(), length)};
+  printf("CPU multiexp result\n");
+  t->data.print();
+  return t;
 }
 
 mnt4753_libsnark::G1 *
@@ -611,7 +614,7 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
   //
   printf("creating buffer\n");
   g1_base_buffer = clCreateBuffer(kern.context,  CL_MEM_READ_WRITE,  sizeof(libff::G1<mnt4753_pp>) * count * TABLE_SIZE, NULL, NULL);
-  g1_result_buffer = clCreateBuffer(kern.context,  CL_MEM_READ_WRITE,  sizeof(libff::G1<mnt4753_pp>) * count, NULL, NULL);
+  g1_result_buffer = clCreateBuffer(kern.context,  CL_MEM_READ_WRITE,  sizeof(libff::G1<mnt4753_pp>) * NUM_WORKS, NULL, NULL);
   exp_buffer = clCreateBuffer(kern.context,  CL_MEM_READ_WRITE,  sizeof(Fr<mnt4753_pp>) * count, NULL, NULL);
   dm_buffer = clCreateBuffer(kern.context, CL_MEM_READ_ONLY, sizeof(bool) * count, NULL, NULL);
   //res = clCreateBuffer(kern.context,  CL_MEM_READ_ONLY,  sizeof(libff::G1<mnt4753_pp>), NULL, NULL);
@@ -680,7 +683,9 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
   kern.global = length;
   printf("queueing table kernel\n");
   printf("%u\n", sizeof(libff::G1<mnt4753_pp>) * count * TABLE_SIZE);
+  printf("%u\n", scalar_data[0].num_bits);
   //exit(1);
+
   kern.err = clEnqueueNDRangeKernel(kern.commands, table_kernel, 1, NULL, &kern.global, &kern.local, 0, NULL, &event);
   if (kern.err)
   {
@@ -700,105 +705,103 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
   printf("OpenCl Execution time is: %0.3f milliseconds \n",nanoSeconds / 1000000.0);
 
   
-//   // Set the arguments to our compute kernel
-//   //
-//   kern.err = 0;
-//   kern.err |= clSetKernelArg(kernel, 0, sizeof(cl_mem), &g1_base_buffer);
-//   kern.err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &g1_result_buffer);
-//   kern.err |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &exp_buffer);
-//   kern.err |= clSetKernelArg(kernel, 3, sizeof(cl_mem), &dm_buffer);
-//   kern.err |= clSetKernelArg(kernel, 4, sizeof(unsigned int), &skip);
-//   kern.err |= clSetKernelArg(kernel, 5, sizeof(unsigned int), &length);
-//   if (kern.err != CL_SUCCESS)
-//   {
-//       printf("Error: Failed to set kernel arguments! %d\n", kern.err);
-//       exit(1);
-//   }
+  // Set the arguments to our compute kernel
+  //
+  kern.err = 0;
+  kern.err |= clSetKernelArg(kernel, 0, sizeof(cl_mem), &g1_base_buffer);
+  kern.err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &g1_result_buffer);
+  kern.err |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &exp_buffer);
+  kern.err |= clSetKernelArg(kernel, 3, sizeof(cl_mem), &dm_buffer);
+  kern.err |= clSetKernelArg(kernel, 4, sizeof(unsigned int), &skip);
+  kern.err |= clSetKernelArg(kernel, 5, sizeof(unsigned int), &length);
+  if (kern.err != CL_SUCCESS)
+  {
+      printf("Error: Failed to set kernel arguments! %d\n", kern.err);
+      exit(1);
+  }
 
 
-//   printf("queueing multi exp kernel\n");
-//   kern.global = NUM_WORKS;
-//   kern.local = 128;
-//   kern.err = clEnqueueNDRangeKernel(kern.commands, kernel, 1, NULL, &kern.global, &kern.local, 0, NULL, &event);
-//   if (kern.err)
-//   {
-//       printf("Error: Failed to execute kernel!\n");
-//       exit(1);
-//   }
+  printf("queueing multi exp kernel\n");
+  kern.global = NUM_WORKS;
+  kern.local = 128;
+  kern.err = clEnqueueNDRangeKernel(kern.commands, kernel, 1, NULL, &kern.global, &kern.local, 0, NULL, &event);
+  if (kern.err)
+  {
+      printf("Error: Failed to execute kernel!\n");
+      exit(1);
+  }
 
 
-//   clWaitForEvents(1, &event);
-//   clFinish(kern.commands);
+  clWaitForEvents(1, &event);
+  clFinish(kern.commands);
 
-//   libff::G1<mnt4753_pp> acc = libff::G1<mnt4753_pp>::zero();
-//   libff::G1<mnt4753_pp> *res = new libff::G1<mnt4753_pp>[length];
+  libff::G1<mnt4753_pp> acc = libff::G1<mnt4753_pp>::zero();
+  libff::G1<mnt4753_pp> *res = new libff::G1<mnt4753_pp>[length];
 
-//   // Time kernel execution time without read/write
-//   //
-//   clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(time_start), &time_start, NULL);
-//   clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(time_end), &time_end, NULL);
+  // Time kernel execution time without read/write
+  //
+  clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(time_start), &time_start, NULL);
+  clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(time_end), &time_end, NULL);
 
-//   nanoSeconds = time_end-time_start;
-//   printf("OpenCl Execution time is: %0.3f milliseconds \n",nanoSeconds / 1000000.0);
-
-  
-//   // Read back the results from the device to verify the output
-//   //
-//   start = high_resolution_clock::now();
-
-//   kern.err = clEnqueueReadBuffer(kern.commands, g1_result_buffer, CL_TRUE, 0, sizeof(libff::G1<mnt4753_pp>) * count, res, 0, NULL, NULL );  
-//   if (kern.err != CL_SUCCESS)
-//   {
-//       printf("Error: Failed to read output array! %d\n", kern.err);
-//       exit(1);
-//   }
-  
-//   stop = high_resolution_clock::now();
-//   duration = duration_cast<microseconds>(stop - start); 
-//   cout << "Time taken by GPU read function: "
-//     << duration.count() << " microseconds" << endl;
-//   // Validate our results
-//   //
-//   printf("Kernel Result \n");
-//   res[0].print();
-
-//   printf("CPU Result\n");
-
-//   correct = 0;
-
-//   // if(results[0] == _h4_1) {
-//   //   correct++;
-//   // }
+  nanoSeconds = time_end-time_start;
+  printf("OpenCl Execution time is: %0.3f milliseconds \n",nanoSeconds / 1000000.0);
 
   
-//   // Print a brief summary detailing the results
-//   //
-//   //printf("Computed '%d/%d' correct fq3 values!\n", correct, count);
-//   // Shutdown and cleanup
-//   //
+  // Read back the results from the device to verify the output
+  //
+  start = high_resolution_clock::now();
 
-//   clReleaseMemObject(g1_base_buffer);
-//   clReleaseMemObject(g1_result_buffer);
-//   clReleaseMemObject(dm_buffer);
-//   clReleaseMemObject(exp_buffer);
-//   //clReleaseProgram(kern.program);
-//   clReleaseKernel(kernel);
-//   clReleaseKernel(table_kernel);
-//   //clReleaseCommandQueue(kern.commands);
-//   //clReleaseContext(kern.context);
-//   // OPENCL END
-//   //break;   
-//   //domain->data->iFFT_GPU(data, k);
+  kern.err = clEnqueueReadBuffer(kern.commands, g1_result_buffer, CL_TRUE, 0, sizeof(libff::G1<mnt4753_pp>) * count, res, 0, NULL, NULL );  
+  if (kern.err != CL_SUCCESS)
+  {
+      printf("Error: Failed to read output array! %d\n", kern.err);
+      exit(1);
+  }
+  
+  stop = high_resolution_clock::now();
+  duration = duration_cast<microseconds>(stop - start); 
+  cout << "Time taken by GPU read function: "
+    << duration.count() << " microseconds" << endl;
+  // Validate our results
+  //
+  printf("Kernel Result \n");
+  res[0].print();
+
+  correct = 0;
+
+  // if(results[0] == _h4_1) {
+  //   correct++;
+  // }
+
+  
+  // Print a brief summary detailing the results
+  //
+  //printf("Computed '%d/%d' correct fq3 values!\n", correct, count);
+  // Shutdown and cleanup
+  //
+
+  clReleaseMemObject(g1_base_buffer);
+  clReleaseMemObject(g1_result_buffer);
+  clReleaseMemObject(dm_buffer);
+  clReleaseMemObject(exp_buffer);
+  //clReleaseProgram(kern.program);
+  clReleaseKernel(kernel);
+  clReleaseKernel(table_kernel);
+  //clReleaseCommandQueue(kern.commands);
+  //clReleaseContext(kern.context);
+  // OPENCL END
+  //break;   
+  //domain->data->iFFT_GPU(data, k);
 
 
-//   //libff::G1<mnt4753_pp> h4_1 = libff::G1<mnt4753_pp>::zero();
+  //libff::G1<mnt4753_pp> h4_1 = libff::G1<mnt4753_pp>::zero();
 
-//   //mnt4753_libsnark::G1 *res = mnt4753_libsnark::G1::zero();
-//   //return res;
-//   // return new mnt4753_libsnark::G1{
-//   //     multiexp<libff::G1<mnt4753_pp>, Fr<mnt4753_pp>>(
-//   //         scalar_start->data->begin() + scalar_start->offset,
-//   //         g_start->data->begin(), length)};
+  //mnt4753_libsnark::G1 *res = mnt4753_libsnark::G1::zero();
+  //return res;
+  // return new mnt4753_libsnark::G1{
+  //     multiexp<libff::G1<mnt4753_pp>, Fr<mnt4753_pp>>(
+  //         scalar_start->data->begin() + scalar_start->offset,
+  //         g_start->data->begin(), length)};
 }
 
 mnt4753_libsnark::G2 *
