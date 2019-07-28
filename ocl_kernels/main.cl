@@ -543,11 +543,13 @@ MNT_G1 G1_double4(MNT_G1 a) {
   res.X_ = X3;
   res.Y_ = Y3;
   res.Z_ = sss;
+
   return res;
 }
 
 
 MNT_G1 G1_mixed_add4(MNT_G1 a, MNT_G1 b) {
+  MNT_G1 res = G1_ZERO;
   int768 X1_Z2 = a.X_;
   int768 X2_Z1 = int768_mul4(a.Z_, b.X_);
 
@@ -555,7 +557,27 @@ MNT_G1 G1_mixed_add4(MNT_G1 a, MNT_G1 b) {
   int768 Y2_Z1 = int768_mul4(a.Z_, b.Y_);
 
   if(int768_eq(X1_Z2, X2_Z1) && int768_eq(Y1_Z2, Y2_Z1)) {
-    return G1_double4(a);
+    //return G1_double4(a);
+    int768 XX = int768_mul4(a.X_, a.X_); // todo special case squaring
+    int768 ZZ = int768_mul4(a.Z_, a.Z_);
+    int768 TXX = int768_add4(XX, XX);
+    TXX = int768_add4(TXX, XX);
+    int768 w = int768_add4(int768_mul4(G1_COEFF_A, ZZ), TXX);
+    int768 Y1_Z1 = int768_mul4(a.Y_, a.Z_);
+    int768 s = int768_add4(Y1_Z1, Y1_Z1);
+    int768 ss = int768_mul4(s, s);
+    int768 sss = int768_mul4(s, ss);
+    int768 R = int768_mul4(a.Y_, s);
+    int768 RR = int768_mul4(R, R);
+    int768 XRR = int768_add4(a.X_, RR);
+    int768 B = int768_sub4(XRR, int768_sub4(XX, RR));
+    int768 h = int768_sub4(int768_mul4(w, w), int768_add4(B, B));
+    int768 X3 = int768_mul4(h, s);
+    int768 Y3 = int768_mul4(w, int768_sub4(int768_sub4(B, h), int768_add4(R,R)));
+    res.X_ = X3;
+    res.Y_ = Y3;
+    res.Z_ = sss;
+    return res;
   }
 
   int768 u = int768_sub4(Y2_Z1, a.Y_);
@@ -570,7 +592,12 @@ MNT_G1 G1_mixed_add4(MNT_G1 a, MNT_G1 b) {
   int768 X3 = int768_mul4(v, A);
   int768 vvvY1Z2 = int768_mul4(vvv, a.Y_);
   int768 Y3 = int768_sub4(int768_mul4(u, int768_sub4(R, A)), vvvY1Z2); 
-  int768 Z3 = int768_mul4(vvv, a.Z_);  
+  int768 Z3 = int768_mul4(vvv, a.Z_);
+  
+  res.X_ = X3;
+  res.Y_ = Y3;
+  res.Z_ = Z3;
+  return res;
 }
 
 MNT_G1 G1_add6(MNT_G1 a, MNT_G1 b) {
@@ -651,7 +678,7 @@ __kernel void mnt4753_fft(
 //
 
 #define NUM_WORKS (192)
-#define NUM_WINDOWS (37)
+#define NUM_WINDOWS (108)
 #define WINDOW_SIZE (7)
 #define BUCKET_LEN ((1 << WINDOW_SIZE) - 1)
 
@@ -682,14 +709,14 @@ __kernel void G1_batched_lookup_multiexp(
     uint ind = int768_get_bits(exps[i], bits, w);
     //if(bits == 0 && ind == 1) res = G1_mixed_add4(res, bases[i]);
     //else if(ind--) buckets[ind] = G1_mixed_add4(buckets[ind], bases[i]);
-    if(bits == 0 && ind == 1) res = G1_mixed_add4(res, G1_ZERO);
-    else if(ind--) buckets[ind] = G1_mixed_add4(buckets[ind], G1_ZERO);
+    //if(bits == 0 && ind == 1) res = G1_mixed_add4(res, G1_ZERO);
+    //else if(ind--) buckets[ind] = G1_mixed_add4(buckets[ind], G1_ZERO);
   }
 
   MNT_G1 acc = G1_ZERO;
   for(int j = BUCKET_LEN - 1; j >= 0; j--) {
-    acc = G1_add4(acc, buckets[j]);
-    res = G1_add4(res, acc);
+    acc = G1_mixed_add4(acc, buckets[j]);
+    res = G1_mixed_add4(res, acc);
   }
 
   results[gid] = res;

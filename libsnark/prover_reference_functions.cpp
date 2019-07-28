@@ -558,7 +558,7 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
   printf("GPU MULTI_EXP START\n");
   size_t NUM_GROUPS  = 192;
   size_t WINDOW_SIZE = 7;
-  size_t NUM_WINDOWS = 37;
+  size_t NUM_WINDOWS = 108;
   size_t TABLE_SIZE = 1 << WINDOW_SIZE;
   size_t BUCKET_LEN = 1 << WINDOW_SIZE;
 
