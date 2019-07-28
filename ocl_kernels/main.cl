@@ -477,6 +477,7 @@ MNT_G1 G1_add4(MNT_G1 a, MNT_G1 b) {
 
   // double case 
   if(int768_eq(X1_Z2, X2_Z1) && int768_eq(Y1_Z2, Y2_Z1)) {
+    printf("double case\n");
     int768 XX = int768_mul4(a.X_, a.X_); // todo special case squaring
     int768 ZZ = int768_mul4(a.Z_, a.Z_);
     int768 TXX = int768_add4(XX, XX);
@@ -498,7 +499,7 @@ MNT_G1 G1_add4(MNT_G1 a, MNT_G1 b) {
     res.Z_ = sss;
     return res;
   }
-
+  printf("double case\n");
   // add case
   int768 Z1_Z2 = int768_mul4(a.Z_, b.Z_);
   int768 u = int768_sub4(Y2_Z1, Y1_Z2);
@@ -549,7 +550,29 @@ MNT_G1 G1_double4(MNT_G1 a) {
 
 
 MNT_G1 G1_mixed_add4(MNT_G1 a, MNT_G1 b) {
-  
+  int768 X1_Z2 = a.X_;
+  int768 X2_Z1 = int768_mul4(a.Z_, b.X_);
+
+  int768 Y1_Z2 = a.Y_;
+  int768 Y2_Z1 = int768_mul4(a.Z_, b.Y_);
+
+  if(int768_eq(X1_Z2, X2_Z1) && int768_eq(Y1_Z2, Y2_Z1)) {
+    return G1_double4(a);
+  }
+
+  int768 u = int768_sub4(Y2_Z1, a.Y_);
+  int768 uu = int768_mul4(u, u);
+  int768 v = int768_sub4(X2_Z1, a.X_);
+  int768 vv = int768_mul4(v,v);
+  int768 vvv = int768_mul4(v,vv);
+  int768 R = int768_mul4(vv, a.X_);
+  int768 vvvR = int768_sub4(vvv, R);
+  vvvR = int768_sub4(vvvR, R);
+  int768 A = int768_sub4(int768_mul4(uu, a.Z_), vvvR);
+  int768 X3 = int768_mul4(v, A);
+  int768 vvvY1Z2 = int768_mul4(vvv, a.Y_);
+  int768 Y3 = int768_sub4(int768_mul4(u, int768_sub4(R, A)), vvvY1Z2); 
+  int768 Z3 = int768_mul4(vvv, a.Z_);  
 }
 
 MNT_G1 G1_add6(MNT_G1 a, MNT_G1 b) {

@@ -669,7 +669,7 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
 
   printf("queueing multi exp kernel\n");
   kern.global = NUM_WINDOWS * NUM_GROUPS;
-  kern.local = 128;
+  kern.local = 64;
   kern.err = clEnqueueNDRangeKernel(kern.commands, kernel, 1, NULL, &kern.global, &kern.local, 0, NULL, &event);
   if (kern.err)
   {
