@@ -666,6 +666,16 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
       exit(1);
   }
 
+  // Get the maximum work group size for executing the kernel on the device
+  //
+  kern.err = clGetKernelWorkGroupInfo(kernel, kern.devices[0], CL_KERNEL_WORK_GROUP_SIZE, sizeof(kern.local), &kern.local, NULL);
+  if (kern.err != CL_SUCCESS)
+  {
+      printf("Error: Failed to retrieve kernel work group info! %d\n", kern.err);
+      exit(1);
+  }
+
+  printf("Max work size: %u\n", kern.local);
 
   printf("queueing multi exp kernel\n");
   kern.global = NUM_WINDOWS * NUM_GROUPS;

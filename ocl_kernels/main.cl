@@ -693,6 +693,10 @@ __kernel void G1_batched_lookup_multiexp(
 
   uint32 gid = get_global_id(0);
 
+  if(gid == 20736) {
+    printf("found unit\n");
+  }
+
   bases += skip;
   buckets += BUCKET_LEN * gid;
   for(uint i = 0; i < BUCKET_LEN; i++) buckets[i] = G1_ZERO;
@@ -702,13 +706,13 @@ __kernel void G1_batched_lookup_multiexp(
   uint32 nend = min(nstart + len, n);
 
   uint bits = (gid % NUM_WINDOWS) * WINDOW_SIZE;
-  ushort w = min((ushort)WINDOW_SIZE, (ushort)(256 - bits));
+  ushort w = min((ushort)WINDOW_SIZE, (ushort)(768 - bits));
 
   MNT_G1 res = G1_ZERO;
   for(uint i = nstart; i < nend; i++) {
     uint ind = int768_get_bits(exps[i], bits, w);
-    //if(bits == 0 && ind == 1) res = G1_mixed_add4(res, bases[i]);
-    //else if(ind--) buckets[ind] = G1_mixed_add4(buckets[ind], bases[i]);
+    if(bits == 0 && ind == 1) res = G1_mixed_add4(res, bases[i]);
+    else if(ind--) buckets[ind] = G1_mixed_add4(buckets[ind], bases[i]);
     //if(bits == 0 && ind == 1) res = G1_mixed_add4(res, G1_ZERO);
     //else if(ind--) buckets[ind] = G1_mixed_add4(buckets[ind], G1_ZERO);
   }
