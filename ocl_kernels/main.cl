@@ -477,7 +477,6 @@ MNT_G1 G1_add4(MNT_G1 a, MNT_G1 b) {
 
   // double case 
   if(int768_eq(X1_Z2, X2_Z1) && int768_eq(Y1_Z2, Y2_Z1)) {
-    printf("double case\n");
     int768 XX = int768_mul4(a.X_, a.X_); // todo special case squaring
     int768 ZZ = int768_mul4(a.Z_, a.Z_);
     int768 TXX = int768_add4(XX, XX);
@@ -499,7 +498,6 @@ MNT_G1 G1_add4(MNT_G1 a, MNT_G1 b) {
     res.Z_ = sss;
     return res;
   }
-  printf("double case\n");
   // add case
   int768 Z1_Z2 = int768_mul4(a.Z_, b.Z_);
   int768 u = int768_sub4(Y2_Z1, Y1_Z2);
@@ -682,8 +680,10 @@ __kernel void G1_batched_lookup_multiexp(
   MNT_G1 res = G1_ZERO;
   for(uint i = nstart; i < nend; i++) {
     uint ind = int768_get_bits(exps[i], bits, w);
-    if(bits == 0 && ind == 1) res = G1_add4(res, bases[i]);
-    else if(ind--) buckets[ind] = G1_add4(buckets[ind], bases[i]);
+    //if(bits == 0 && ind == 1) res = G1_mixed_add4(res, bases[i]);
+    //else if(ind--) buckets[ind] = G1_mixed_add4(buckets[ind], bases[i]);
+    if(bits == 0 && ind == 1) res = G1_mixed_add4(res, G1_ZERO);
+    else if(ind--) buckets[ind] = G1_mixed_add4(buckets[ind], G1_ZERO);
   }
 
   MNT_G1 acc = G1_ZERO;
