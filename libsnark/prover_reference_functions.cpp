@@ -565,9 +565,9 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
   std::vector<Fr<mnt4753_pp>> &scalar_data = *scalar_start->data;
   std::vector<libff::G1<mnt4753_pp>> &g_data = *g_start->data;
   
-  libff::G1<mnt4753_pp> *table = new libff::G1<mnt4753_pp>[length];
+  // libff::G1<mnt4753_pp> *table = new libff::G1<mnt4753_pp>[length];
   // initialize table
-  for(int i=0; i<length; i++) { table[i] = table[i] + g_data[i]; }
+  // for(int i=0; i<length; i++) { table[i] = table[i] + g_data[i]; }
   
   // compute table with kernel
   cl_kernel kernel;                   // compute kernel
@@ -578,7 +578,7 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
   
   bool skip = 0;
   bool *dm = new bool[length];
-  libff::G1<mnt4753_pp> result; 
+  libff::G1<mnt4753_pp> result;
   unsigned int correct;
 
   cl_mem g1_base_buffer;
@@ -589,8 +589,24 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
   // /depends/libff/algebra/scalar_mul/multiexp.tcc appears to have the impl
   cl_mem dm_buffer;
   //cl_mem res;
-  // Fill our data set with field inputs from param gen
+
+  // Fill our data set with inputs from param gen
   //
+  libff::G1<mnt4753_pp> *data_bases = new libff::G1<mnt4753_pp>[n];
+  Fr<mnt4753_pp> *data_scalars = new Fr<mnt4753_pp>[n];
+
+  for(int i = 1; i < n; i++) {
+    memcpy(&data_bases[i-1], &g_data[i], sizeof(libff::G1<mnt4753_pp>));
+  }
+
+  for(int i = 1; i < n; i++) {
+    memcpy(&data_scalars[i-1], &scalar_data[i], sizeof(Fr<mnt4753_pp>));
+  }
+  
+  printf("copied base: \n");
+  data_scalars[0].print();
+  data_scalars[0].as_bigint().print();
+  exit(1);
   unsigned int count = n;
 
 
@@ -625,14 +641,14 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
   for(int i=0; i<length; i++) {
 
   }
-  kern.err = clEnqueueWriteBuffer(kern.commands, g1_base_buffer, CL_TRUE, 0, sizeof(libff::G1<mnt4753_pp>) * count, &g_data, 0, NULL, NULL);
+  kern.err = clEnqueueWriteBuffer(kern.commands, g1_base_buffer, CL_TRUE, 0, sizeof(libff::G1<mnt4753_pp>) * count, data_bases, 0, NULL, NULL);
   if (kern.err != CL_SUCCESS)
   {
       printf("Error: Failed to write to base source array!\n");
       exit(1);
   }
 
-  kern.err = clEnqueueWriteBuffer(kern.commands, exp_buffer, CL_TRUE, 0, sizeof(Fr<mnt4753_pp>) * count, &scalar_data, 0, NULL, NULL);
+  kern.err = clEnqueueWriteBuffer(kern.commands, exp_buffer, CL_TRUE, 0, sizeof(Fr<mnt4753_pp>) * count, data_scalars, 0, NULL, NULL);
   if (kern.err != CL_SUCCESS)
   {
       printf("Error: Failed to write to source array!\n");
@@ -691,7 +707,8 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
   clWaitForEvents(1, &event);
   clFinish(kern.commands);
 
-  libff::G1<mnt4753_pp> acc = libff::G1<mnt4753_pp>::zero();
+  //libff::G1<mnt4753_pp> acc = libff::G1<mnt4753_pp>::zero();
+  libff::G1<mnt4753_pp> acc = g_data[0];
   libff::G1<mnt4753_pp> *res = new libff::G1<mnt4753_pp>[NUM_WINDOWS * NUM_GROUPS];
 
   // Time kernel execution time without read/write
@@ -721,8 +738,15 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
   // Validate our results
   //
   printf("Kernel Result \n");
+  
   res[0].print();
 
+  for(int i=0; i<NUM_WINDOWS * NUM_GROUPS; i++) {
+    //acc = acc + res[i];
+    acc = acc + res[i];
+  }
+
+  acc.print();
 
   // if(results[0] == _h4_1) {
   //   correct++;

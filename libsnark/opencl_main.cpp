@@ -133,7 +133,8 @@ int run_prover(
     printf("A G1 multiexp\n");
     typename B::G1 *evaluation_At = B::multiexp_G1(
         B::input_w(input), B::params_A(params), B::params_m(params) + 1);
-    
+    //exit(1);
+
     printf("A G1 multiexp GPU\n");
     typename B::G1 *evaluation_At_GPU = B::multiexp_G1_GPU(
         B::input_w(input), B::params_A(params), B::params_m(params), k);

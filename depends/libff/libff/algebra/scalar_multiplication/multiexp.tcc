@@ -179,6 +179,9 @@ T multi_exp_inner(
     // empirically, this seems to be a decent estimate of the optimal value of c
     size_t log2_length = log2(length);
     size_t c = log2_length - (log2_length / 3 - 2);
+    printf("length: %u\n", length);
+    printf("log length: %u\n", log2_length);
+    printf("c: %u\n", c);
 
     const mp_size_t exp_num_limbs =
         std::remove_reference<decltype(*exponents)>::type::num_limbs;
