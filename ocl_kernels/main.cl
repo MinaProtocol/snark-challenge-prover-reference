@@ -119,7 +119,7 @@ uint EXPONENT_get_bits(int768 l, uint skip, uint window) {
   uint ret = 0;
   for(uint i = 0; i < window; i++) {
     ret <<= 1;
-    ret |= EXPONENT_get_bit(l, skip + i);
+    ret |= int768_get_bit(l, skip + i);
   }
   return ret;
 }
@@ -744,7 +744,7 @@ __kernel void mnt4753_fft(
 //
 
 #define NUM_WORKS (192)
-#define NUM_WINDOWS (108)
+#define NUM_WINDOWS (110)
 #define WINDOW_SIZE (7)
 #define BUCKET_LEN ((1 << WINDOW_SIZE) - 1)
 
@@ -753,17 +753,16 @@ __kernel void G1_batched_lookup_multiexp(
     __global MNT_G1 *buckets,
     __global MNT_G1 *results,
     __global int768 *exps,
-    __global bool *dm,
     uint skip,
     uint n) {
 
   uint32 gid = get_global_id(0);
 
-  if(gid == 20736) {
+  if(gid == 20735) {
     printf("found unit\n");
   }
 
-  bases += skip;
+  //bases += skip;
   buckets += BUCKET_LEN * gid;
   for(uint i = 0; i < BUCKET_LEN; i++) buckets[i] = G1_ZERO;
 
@@ -779,8 +778,6 @@ __kernel void G1_batched_lookup_multiexp(
     uint ind = EXPONENT_get_bits(exps[i], bits, w);
     if(bits == 0 && ind == 1) res = G1_add4(res, bases[i]);
     else if(ind--) buckets[ind] = G1_add4(buckets[ind], bases[i]);
-    //if(bits == 0 && ind == 1) res = G1_mixed_add4(res, G1_ZERO);
-    //else if(ind--) buckets[ind] = G1_mixed_add4(buckets[ind], G1_ZERO);
   }
 
   MNT_G1 acc = G1_ZERO;
