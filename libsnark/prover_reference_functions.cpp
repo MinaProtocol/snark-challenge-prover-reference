@@ -556,18 +556,13 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
                               mnt4753_libsnark::vector_G1 *g_start,
                               size_t length, Kernel kern) {
   printf("GPU MULTI_EXP START\n");
-  size_t NUM_GROUPS  = 192;
-  size_t WINDOW_SIZE = 7;
-  size_t NUM_WINDOWS = 110;
-  size_t TABLE_SIZE = 1 << WINDOW_SIZE;
+  size_t NUM_GROUPS  = 224;
+  size_t WINDOW_SIZE = 8;
+  size_t NUM_WINDOWS = 96;
   size_t BUCKET_LEN = 1 << WINDOW_SIZE;
 
   std::vector<Fr<mnt4753_pp>> &scalar_data = *scalar_start->data;
   std::vector<libff::G1<mnt4753_pp>> &g_data = *g_start->data;
-  
-  // libff::G1<mnt4753_pp> *table = new libff::G1<mnt4753_pp>[length];
-  // initialize table
-  // for(int i=0; i<length; i++) { table[i] = table[i] + g_data[i]; }
   
   // compute table with kernel
   cl_kernel kernel;                   // compute kernel
@@ -697,7 +692,7 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
 
   printf("queueing multi exp kernel\n");
   kern.global = NUM_WINDOWS * NUM_GROUPS;
-  kern.local = 64;
+  kern.local = 256;
   kern.err = clEnqueueNDRangeKernel(kern.commands, kernel, 1, NULL, &kern.global, &kern.local, 0, NULL, &event);
   if (kern.err)
   {
@@ -709,7 +704,6 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
   clWaitForEvents(1, &event);
   clFinish(kern.commands);
 
-  libff::G1<mnt4753_pp> acc = libff::G1<mnt4753_pp>::zero();
   //libff::G1<mnt4753_pp> acc = g_data[0];
   libff::G1<mnt4753_pp> *res = new libff::G1<mnt4753_pp>[NUM_WINDOWS * NUM_GROUPS];
 
@@ -742,6 +736,8 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
   printf("Kernel Result \n");
   
   res[0].print();
+  
+  libff::G1<mnt4753_pp> acc = libff::G1<mnt4753_pp>::zero();
   unsigned int bits = 0;
   for(int i=0; i<NUM_WINDOWS; i++) {
     unsigned int w = std::min(static_cast<unsigned int>(WINDOW_SIZE), (768 - bits));
