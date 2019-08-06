@@ -753,7 +753,6 @@ __kernel void G1_batched_lookup_multiexp(
     __global MNT_G1 *buckets,
     __global MNT_G1 *results,
     __global int768 *exps,
-    uint skip,
     uint n) {
 
   uint32 gid = get_global_id(0);
@@ -776,19 +775,19 @@ __kernel void G1_batched_lookup_multiexp(
     
     for(uint j=WINDOW_SIZE-1; j<=WINDOW_SIZE; j--) {
       if(gid==0 && bits==0) {
-        printf("i: %u\n", i);
-        printf("bit: %u\n", bits + j);
-        printf("j: %u\n", j);
-        printf("id before: %u\n", ind);
-        printf("is set: %u\n", int768_get_bit(exps[i], bits + j));
+        //printf("i: %u\n", i);
+        //printf("bit: %u\n", bits + j);
+        //printf("j: %u\n", j);
+        //printf("id before: %u\n", ind);
+        //printf("is set: %u\n", int768_get_bit(exps[i], bits + j));
       }
       if(int768_get_bit(exps[i], bits + j)) {
         //ind |= 1 << j;
         ind |= 1 << (WINDOW_SIZE-(j+1));
       }
       if(gid==0 && bits==0) {
-        printf("id after: %u\n", ind);
-        printf("------------\n");
+        //printf("id after: %u\n", ind);
+        //printf("------------\n");
       }
     } 
 

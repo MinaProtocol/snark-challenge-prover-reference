@@ -671,8 +671,8 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
   kern.err |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &g1_result_buffer);
   kern.err |= clSetKernelArg(kernel, 3, sizeof(cl_mem), &exp_buffer);
   //kern.err |= clSetKernelArg(kernel, 4, sizeof(cl_mem), &dm_buffer);
-  kern.err |= clSetKernelArg(kernel, 4, sizeof(unsigned int), &skip);
-  kern.err |= clSetKernelArg(kernel, 5, sizeof(unsigned int), &length);
+  //kern.err |= clSetKernelArg(kernel, 4, sizeof(unsigned int), &skip);
+  kern.err |= clSetKernelArg(kernel, 4, sizeof(unsigned int), &length);
   if (kern.err != CL_SUCCESS)
   {
       printf("Error: Failed to set kernel arguments! %d\n", kern.err);
@@ -735,7 +735,7 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
   //
   printf("Kernel Result \n");
   
-  res[0].print();
+  //res[0].print();
   
   libff::G1<mnt4753_pp> acc = libff::G1<mnt4753_pp>::zero();
   unsigned int bits = 0;
