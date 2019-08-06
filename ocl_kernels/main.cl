@@ -112,14 +112,14 @@ bool int768_get_bit(int768 l, uint i) {
 }
 
 bool EXPONENT_get_bit(int768 l, uint i) {
-  return (l.v[FIELD_LIMBS - 1 - i / LIMB_BITS] >> (LIMB_BITS - 1 - (i % LIMB_BITS))) & 1;
+  return (l.v[23 - i / 32] >> (31 - (i % 32))) & 1;
 }
 
 uint EXPONENT_get_bits(int768 l, uint skip, uint window) {
   uint ret = 0;
   for(uint i = 0; i < window; i++) {
     ret <<= 1;
-    ret |= int768_get_bit(l, skip + i);
+    ret |= EXPONENT_get_bit(l, skip + i);
   }
   return ret;
 }
@@ -759,38 +759,19 @@ __kernel void G1_batched_lookup_multiexp(
 
   //bases += skip;
   buckets += BUCKET_LEN * gid;
-  //for(uint i = 0; i < BUCKET_LEN; i++) buckets[i] = G1_ZERO;
+  for(uint i = 0; i < BUCKET_LEN; i++) buckets[i] = G1_ZERO;
 
   uint len = (uint)ceil(n / (float)NUM_WORKS);
   uint32 nstart = len * (gid / NUM_WINDOWS);
   uint32 nend = min(nstart + len, n);
 
   uint bits = (gid % NUM_WINDOWS) * WINDOW_SIZE;
+  //printf("%u\n",bits);
   ushort w = min((ushort)WINDOW_SIZE, (ushort)(768 - bits));
 
   MNT_G1 res = G1_ZERO;
   for(uint i = nstart; i < nend; i++) {
-    //uint ind = EXPONENT_get_bits(exps[i], bits, w);
-    uint ind = 0;
-    
-    for(uint j=WINDOW_SIZE-1; j<=WINDOW_SIZE; j--) {
-      if(gid==0 && bits==0) {
-        //printf("i: %u\n", i);
-        //printf("bit: %u\n", bits + j);
-        //printf("j: %u\n", j);
-        //printf("id before: %u\n", ind);
-        //printf("is set: %u\n", int768_get_bit(exps[i], bits + j));
-      }
-      if(int768_get_bit(exps[i], bits + j)) {
-        //ind |= 1 << j;
-        ind |= 1 << (WINDOW_SIZE-(j+1));
-      }
-      if(gid==0 && bits==0) {
-        //printf("id after: %u\n", ind);
-        //printf("------------\n");
-      }
-    } 
-
+    uint ind = EXPONENT_get_bits(exps[i], bits, w);
     if(bits == 0 && ind == 1) res = G1_add4(res, bases[i]);
     else if(ind--) buckets[ind] = G1_add4(buckets[ind], bases[i]);
   }
@@ -802,4 +783,5 @@ __kernel void G1_batched_lookup_multiexp(
   }
 
   results[gid] = res;
+  //printf("%u\n", sizeof(MNT_G1));
 }

@@ -604,7 +604,7 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
   data_scalars[0].print();
 
   //exit(1);
-  unsigned int count = n;
+  unsigned int count = n - 1;
 
 
   // Create the compute kernel in the program we wish to run
@@ -616,7 +616,7 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
       exit(1);
   }
 
-
+  
   // Create the input and output arrays in device memory for our calculation
   //
   printf("creating buffer\n");
@@ -662,9 +662,10 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
   cout << "Time taken by GPU write function: "
     << duration.count() << " microseconds" << endl;
 
-  
+  printf("%u %u********\n", sizeof(libff::G1<mnt4753_pp>), sizeof(bigint<12>));
   // Set the arguments to our compute kernel
   //
+  size_t lnn = length - 1;
   kern.err = 0;
   kern.err |= clSetKernelArg(kernel, 0, sizeof(cl_mem), &g1_base_buffer);
   kern.err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &g1_bucket_buffer);
@@ -672,7 +673,7 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
   kern.err |= clSetKernelArg(kernel, 3, sizeof(cl_mem), &exp_buffer);
   //kern.err |= clSetKernelArg(kernel, 4, sizeof(cl_mem), &dm_buffer);
   //kern.err |= clSetKernelArg(kernel, 4, sizeof(unsigned int), &skip);
-  kern.err |= clSetKernelArg(kernel, 4, sizeof(unsigned int), &length);
+  kern.err |= clSetKernelArg(kernel, 4, sizeof(unsigned int), &lnn);
   if (kern.err != CL_SUCCESS)
   {
       printf("Error: Failed to set kernel arguments! %d\n", kern.err);
@@ -742,7 +743,7 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
   for(int i=0; i<NUM_WINDOWS; i++) {
     unsigned int w = std::min(static_cast<unsigned int>(WINDOW_SIZE), (768 - bits));
     for(int j=0; j<w; j++) {
-      acc.dbl();
+      acc = acc.dbl();
     }
     for(int g=0; g<NUM_GROUPS; g++) {
       acc = acc + res[g * NUM_WINDOWS + i];
