@@ -11,7 +11,7 @@ typedef uint64 limb;
 typedef uint64 limb2;
 
 typedef struct {
-  limb v[24];
+  limb v[12];
 } int768;
 
 #define FIELD_LIMBS (12)
@@ -33,7 +33,7 @@ typedef struct {
 //#define mnt6753_INV_Fq ((uint){{0x3fffffff}})
 
 #define mnt4753_Q ((int768){{0x5e9063de245e8001,0xe39d54522cdd119f,0x638810719ac425f0,0x685acce9767254a4,0xb80f0da5cb537e38,0xb117e776f218059d,0x99d124d9a15af79d,0x7fdb925e8a0ed8d,0x5eb7e8f96c97d873,0xb7f997505b8fafed,0x10229022eee2cdad,0x1c4c62d92c411}})
-#define mnt6753_Q ((int768){{0x40000001,0xd90776e2,0xfa13a4f,0x4ea09917,0x3f005797,0xd6c381bc,0x34993aa4,0xb9dff976,0x29212636,0x3eebca94,0xc859a99b,0xb26c5c28,0xa15af79d,0x99d124d9,0xe8a0ed8d,0x7fdb925,0x6c97d873,0x5eb7e8f9,0x5b8fafed,0xb7f99750,0xeee2cdad,0x10229022,0x2d92c411,0x1c4c6}})
+//#define mnt6753_Q ((int768){{0x40000001,0xd90776e2,0xfa13a4f,0x4ea09917,0x3f005797,0xd6c381bc,0x34993aa4,0xb9dff976,0x29212636,0x3eebca94,0xc859a99b,0xb26c5c28,0xa15af79d,0x99d124d9,0xe8a0ed8d,0x7fdb925,0x6c97d873,0x5eb7e8f9,0x5b8fafed,0xb7f99750,0xeee2cdad,0x10229022,0x2d92c411,0x1c4c6}})
 
 limb bitreverse(limb n, limb bits) {
   limb r = 0;
@@ -44,56 +44,6 @@ limb bitreverse(limb n, limb bits) {
   return r;
 }
 
-bool int768_get_bit(int768 l, uint i) {
-  if(i < 32)
-    return (l.v[0] >> i) & 1;
-  else if(i < 64)
-    return (l.v[1] >> (i - 32)) & 1;
-  else if(i < 96)
-    return (l.v[2] >> (i - 64)) & 1;
-  else if(i < 128)
-    return (l.v[3] >> (i - 96)) & 1;
-  else if(i < 160)
-    return (l.v[4] >> (i - 128)) & 1;
-  else if(i < 192)
-    return (l.v[5] >> (i - 160)) & 1;
-  else if(i < 224)
-    return (l.v[6] >> (i - 192)) & 1;
-  else if(i < 256)
-    return (l.v[7] >> (i - 224)) & 1;
-  else if(i < 288)
-    return (l.v[8] >> (i - 256)) & 1;
-  else if(i < 320)
-    return (l.v[9] >> (i - 288)) & 1;
-  else if(i < 352)
-    return (l.v[10] >> (i - 320)) & 1;
-  else if(i < 384)
-    return (l.v[11] >> (i - 352)) & 1;
-  else if(i < 416)
-    return (l.v[12] >> (i - 384)) & 1;
-  else if(i < 448)
-    return (l.v[13] >> (i - 416)) & 1;
-  else if(i < 480)
-    return (l.v[14] >> (i - 448)) & 1;
-  else if(i < 512)
-    return (l.v[15] >> (i - 480)) & 1;
-  else if(i < 544)
-    return (l.v[16] >> (i - 512)) & 1;
-  else if(i < 576)
-    return (l.v[17] >> (i - 544)) & 1;
-  else if(i < 608)
-    return (l.v[18] >> (i - 576)) & 1;
-  else if(i < 640)
-    return (l.v[19] >> (i - 608)) & 1;
-  else if(i < 672)
-    return (l.v[20] >> (i - 640)) & 1;
-  else if(i < 704)
-    return (l.v[21] >> (i - 672)) & 1;
-  else if(i < 736)
-    return (l.v[22] >> (i - 704)) & 1;
-  else if(i < 768)
-    return (l.v[23] >> (i - 736)) & 1;
-}
 
 bool EXPONENT_get_bit(int768 l, uint i) {
   return (l.v[11 - i / 64] >> (63 - (i % 64))) & 1;
@@ -213,28 +163,28 @@ int768 int768_reduce4(ulong *limbs) {
   return result;
 }
 
-int768 int768_reduce6(ulong *limbs) {
-  // Montgomery reduction
-  bool carry2 = 0;
-  for(uchar i = 0; i < FIELD_LIMBS; i++) {
-    limb u = mnt6753_INV_Fq * limbs[i];
-    limb carry = 0;
-    for(uchar j = 0; j < FIELD_LIMBS; j++) {
-      limbs[i + j] = mac_with_carry(u, mnt6753_Q.v[j], limbs[i + j], &carry);
-    }
-    limbs[i + FIELD_LIMBS] = add2_with_carry(limbs[i + FIELD_LIMBS], carry, &carry2);
-  }
+//int768 int768_reduce6(ulong *limbs) {
+//  // Montgomery reduction
+//  bool carry2 = 0;
+//  for(uchar i = 0; i < FIELD_LIMBS; i++) {
+//    limb u = mnt6753_INV_Fq * limbs[i];
+//    limb carry = 0;
+//    for(uchar j = 0; j < FIELD_LIMBS; j++) {
+//      limbs[i + j] = mac_with_carry(u, mnt6753_Q.v[j], limbs[i + j], &carry);
+//    }
+//    limbs[i + FIELD_LIMBS] = add2_with_carry(limbs[i + FIELD_LIMBS], carry, &carry2);
+//  }
 
-  // Divide by R
-  int768 result;
-  // this breaks amd compiler
-  for(uchar i = 0; i < FIELD_LIMBS; i++) result.v[i] = limbs[i+FIELD_LIMBS];
+//  // Divide by R
+//  int768 result;
+//  // this breaks amd compiler
+//  for(uchar i = 0; i < FIELD_LIMBS; i++) result.v[i] = limbs[i+FIELD_LIMBS];
 
-  if(int768_gte(result, mnt6753_Q))
-    result = int768_sub_(result, mnt6753_Q);
+//  if(int768_gte(result, mnt6753_Q))
+//    result = int768_sub_(result, mnt6753_Q);
 
-  return result;
-}
+// return result;
+//}
 
 // Modular multiplication
 int768 int768_mul4(int768 a, int768 b) {
@@ -250,28 +200,28 @@ int768 int768_mul4(int768 a, int768 b) {
   return int768_reduce4(res);
 }
 
-// Modular multiplication
-int768 int768_mul6(int768 a, int768 b) {
-  // Long multiplication
-  limb res[FIELD_LIMBS * 2] = {0};
-  for(uchar i = 0; i < FIELD_LIMBS; i++) {
-    limb carry = 0;
-    for(uchar j = 0; j < FIELD_LIMBS; j++)
-      res[i + j] = mac_with_carry(a.v[i], b.v[j], res[i + j], &carry);
-    res[i + FIELD_LIMBS] = carry;
-  }
-
-  return int768_reduce6(res);
-}
+// // Modular multiplication
+//int768 int768_mul6(int768 a, int768 b) {
+//  // Long multiplication
+//  limb res[FIELD_LIMBS * 2] = {0};
+//  for(uchar i = 0; i < FIELD_LIMBS; i++) {
+//    limb carry = 0;
+//    for(uchar j = 0; j < FIELD_LIMBS; j++)
+//      res[i + j] = mac_with_carry(a.v[i], b.v[j], res[i + j], &carry);
+//    res[i + FIELD_LIMBS] = carry;
+// }
+//
+//  return int768_reduce6(res);
+//}
 
 // Modular negation
 int768 int768_neg4(int768 a) {
   return int768_sub_(mnt4753_Q, a);
 }
 
-int768 int768_neg6(int768 a) {
-  return int768_sub_(mnt6753_Q, a);
-}
+//int768 int768_neg6(int768 a) {
+//  return int768_sub_(mnt6753_Q, a);
+//}
 
 // Modular subtraction
 int768 int768_sub4(int768 a, int768 b) {
@@ -280,11 +230,11 @@ int768 int768_sub4(int768 a, int768 b) {
   return res;
 }
 
-int768 int768_sub6(int768 a, int768 b) {
-  int768 res = int768_sub_(a, b);
-  if(!int768_gte(a, b)) res = int768_add_(res, mnt6753_Q);
-  return res;
-}
+//int768 int768_sub6(int768 a, int768 b) {
+//  int768 res = int768_sub_(a, b);
+//  if(!int768_gte(a, b)) res = int768_add_(res, mnt6753_Q);
+//  return res;
+//}
 
 // Modular addition
 int768 int768_add4(int768 a, int768 b) {
@@ -295,13 +245,13 @@ int768 int768_add4(int768 a, int768 b) {
   return res;
 }
 
-int768 int768_add6(int768 a, int768 b) {
-  //return int768_sub4(a, int768_neg6(b));
-  int768 tmp = int768_neg6(b);
-  int768 res = int768_sub_(a, tmp);
-  if(!int768_gte(a, tmp)) res = int768_add_(res, mnt6753_Q);
-  return res;
-}
+//int768 int768_add6(int768 a, int768 b) {
+//  //return int768_sub4(a, int768_neg6(b));
+//  int768 tmp = int768_neg6(b);
+//  int768 res = int768_sub_(a, tmp);
+//  if(!int768_gte(a, tmp)) res = int768_add_(res, mnt6753_Q);
+//  return res;
+//}
 
 // Modular exponentiation
 int768 int768_pow(int768 base, uint32 exponent) {
@@ -391,50 +341,50 @@ Fq2 Fq2_mul(Fq2 _a, Fq2 _b) {
 // Fq3 arithmetics
 //
 
-typedef struct {
-  int768 c0;
-  int768 c1;
-  int768 c2;
-} Fq3;
+//typedef struct {
+//  int768 c0;
+//  int768 c1;
+//  int768 c2;
+//} Fq3;
 
-#define Fq3_ZERO ((Fq3){mnt6753_ZERO, mnt6753_ZERO, mnt6753_ZERO})
-#define Fq3_ONE ((Fq3){mnt6753_ONE, mnt6753_ZERO, mnt6753_ZERO})
+//#define Fq3_ZERO ((Fq3){mnt6753_ZERO, mnt6753_ZERO, mnt6753_ZERO})
+//#define Fq3_ONE ((Fq3){mnt6753_ONE, mnt6753_ZERO, mnt6753_ZERO})
 
 // Montgomery non_residue
-#define non_residue ((int768){{0x4768931cfff9c7d4,0xc45e46d6ada96ca0,0x479b0bdb0b3c0107,0x362a089610f8d41b,0xdbafcec2c8a91aaf,0x78428b0ff9d96a06,0xf2e4472a9080c353,0xc9006ed33f0e971c,0x794d9d10bdb7288,0x3c1e44cab5419e2c,0x49b5fc6c81f4560c,0x1c287777c30ba}});
+//#define non_residue ((int768){{0x4768931cfff9c7d4,0xc45e46d6ada96ca0,0x479b0bdb0b3c0107,0x362a089610f8d41b,0xdbafcec2c8a91aaf,0x78428b0ff9d96a06,0xf2e4472a9080c353,0xc9006ed33f0e971c,0x794d9d10bdb7288,0x3c1e44cab5419e2c,0x49b5fc6c81f4560c,0x1c287777c30ba}});
 // Integer non_residue
 //#define non_residue ((int768){{0xD}});
 
 
-Fq3 int768_fq3_add(Fq3 x, Fq3 y) {
-  Fq3 res = Fq3_ZERO;
-  res.c0 = int768_add6(x.c0, y.c0); 
-  res.c1 = int768_add6(x.c1, y.c1);
-  res.c2 = int768_add6(x.c2, y.c2);
-  return res;
-}
+//Fq3 int768_fq3_add(Fq3 x, Fq3 y) {
+//  Fq3 res = Fq3_ZERO;
+//  res.c0 = int768_add6(x.c0, y.c0); 
+//  res.c1 = int768_add6(x.c1, y.c1);
+//  res.c2 = int768_add6(x.c2, y.c2);
+//  return res;
+//}
 
-Fq3 int768_fq3_mul(Fq3 a, Fq3 b) {
-  Fq3 res = Fq3_ZERO;
-  int768 residue = non_residue;
-
-  int768 a0_b0 = int768_mul6(a.c0, b.c0);
-  int768 a0_b1 = int768_mul6(a.c0, b.c1); 
-  int768 a0_b2 = int768_mul6(a.c0, b.c2);
-
-  int768 a1_b0 = int768_mul6(a.c1, b.c0);
-  int768 a1_b1 = int768_mul6(a.c1, b.c1); 
-  int768 a1_b2 = int768_mul6(a.c1, b.c2);
-
-  int768 a2_b0 = int768_mul6(a.c2, b.c0);
-  int768 a2_b1 = int768_mul6(a.c2, b.c1); 
-  int768 a2_b2 = int768_mul6(a.c2, b.c2);
-
-  res.c0 = int768_add6(a0_b0, int768_mul6(residue, int768_add6(a1_b2, a2_b1)));
-  res.c1 = int768_add6(a0_b1, int768_add6(a1_b0, int768_mul6(residue, a2_b2)));
-  res.c2 = int768_add6(a0_b2, int768_add6(a1_b1, a2_b0));
-  return res;
-}
+//Fq3 int768_fq3_mul(Fq3 a, Fq3 b) {
+//  Fq3 res = Fq3_ZERO;
+//  int768 residue = non_residue;
+//
+//  int768 a0_b0 = int768_mul6(a.c0, b.c0);
+//  int768 a0_b1 = int768_mul6(a.c0, b.c1); 
+//  int768 a0_b2 = int768_mul6(a.c0, b.c2);
+//
+//  int768 a1_b0 = int768_mul6(a.c1, b.c0);
+//  int768 a1_b1 = int768_mul6(a.c1, b.c1); 
+//  int768 a1_b2 = int768_mul6(a.c1, b.c2);
+//
+//  int768 a2_b0 = int768_mul6(a.c2, b.c0);
+//  int768 a2_b1 = int768_mul6(a.c2, b.c1); 
+//  int768 a2_b2 = int768_mul6(a.c2, b.c2);
+//
+//  res.c0 = int768_add6(a0_b0, int768_mul6(residue, int768_add6(a1_b2, a2_b1)));
+//  res.c1 = int768_add6(a0_b1, int768_add6(a1_b0, int768_mul6(residue, a2_b2)));
+//  res.c2 = int768_add6(a0_b2, int768_add6(a1_b1, a2_b0));
+//  return res;
+//}
 
 // eliptic curve arithmetics
 //
