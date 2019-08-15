@@ -237,15 +237,15 @@ mnt4753_libsnark::vector_Fr *mnt4753_libsnark::vector_Fr_zeros(size_t length) {
 void mnt4753_libsnark::domain_iFFT(mnt4753_libsnark::evaluation_domain *domain,
                                    mnt4753_libsnark::vector_Fr *a) {
   std::vector<Fr<mnt4753_pp>> &data = *a->data;
-  printf("===== FFT CPU ===== \n");
-  data[0].print();
-  a->data->at(0).print();
+  //printf("===== FFT CPU ===== \n");
+  //data[0].print();
+ // a->data->at(0).print();
   domain->data->iFFT(data);
-  printf("after FFT\n");
-  Fr<mnt4753_pp> elem = domain->data->get_domain_element(1);
+  //printf("after FFT\n");
+  //Fr<mnt4753_pp> elem = domain->data->get_domain_element(1);
 
-  a->data->at(0).print();
-  data[0].print();
+  //a->data->at(0).print();
+  //data[0].print();
 }
 
 void mnt4753_libsnark::domain_iFFT_GPU(mnt4753_libsnark::evaluation_domain *domain,
@@ -546,8 +546,8 @@ mnt4753_libsnark::multiexp_G1(mnt4753_libsnark::vector_Fr *scalar_start,
       multiexp<libff::G1<mnt4753_pp>, Fr<mnt4753_pp>>(
           scalar_start->data->begin() + scalar_start->offset,
           g_start->data->begin(), length)};
-  printf("CPU multiexp result\n");
-  t->data.print();
+  //printf("CPU multiexp result\n");
+  //t->data.print();
   return t;
 }
 
@@ -555,7 +555,7 @@ mnt4753_libsnark::G1 *
 mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
                               mnt4753_libsnark::vector_G1 *g_start,
                               size_t length, Kernel kern) {
-  printf("GPU MULTI_EXP START\n");
+  printf("GPU MULTI_EXP STARTING\n");
   size_t NUM_GROUPS  = 224;
   size_t WINDOW_SIZE = 8;
   size_t NUM_WINDOWS = 96;
@@ -587,7 +587,6 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
 
   // Fill our data set with inputs from param gen
   //
-
   libff::G1<mnt4753_pp> *data_bases = new libff::G1<mnt4753_pp>[n];
   bigint<12> *data_scalars = new bigint<12>[n];
 
@@ -600,8 +599,8 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
     data_scalars[i-1] = scalar_data[i].as_bigint();
   }
   
-  printf("copied base: \n");
-  data_scalars[0].print();
+  //printf("copied base: \n");
+  //data_scalars[0].print();
 
   //exit(1);
   unsigned int count = n - 1;
@@ -662,7 +661,6 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
   cout << "Time taken by GPU write function: "
     << duration.count() << " microseconds" << endl;
 
-  printf("%u %u********\n", sizeof(libff::G1<mnt4753_pp>), sizeof(bigint<12>));
   // Set the arguments to our compute kernel
   //
   size_t lnn = length - 1;
@@ -734,7 +732,7 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
     << duration.count() << " microseconds" << endl;
   // Validate our results
   //
-  printf("Kernel Result \n");
+  //printf("Kernel Result \n");
   
   //res[0].print();
   
@@ -751,7 +749,7 @@ mnt4753_libsnark::multiexp_G1_GPU(mnt4753_libsnark::vector_Fr *scalar_start,
     bits += w;
   }
   acc = acc + g_data[0];
-  acc.print();
+  //acc.print();
 
   // if(results[0] == _h4_1) {
   //   correct++;

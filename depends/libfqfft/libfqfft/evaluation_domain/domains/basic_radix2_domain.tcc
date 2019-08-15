@@ -27,8 +27,8 @@ namespace libfqfft {
 template<typename FieldT>
 basic_radix2_domain<FieldT>::basic_radix2_domain(const size_t m, bool &err) : evaluation_domain<FieldT>(m)
 {
-    printf("in basic_radix2 domain \n");
-    FieldT(1).mont_repr.print();
+    //printf("in basic_radix2 domain \n");
+    //FieldT(1).mont_repr.print();
     if (m <= 1) {
       err = true;
       omega = FieldT(1);
@@ -61,8 +61,8 @@ basic_radix2_domain<FieldT>::basic_radix2_domain(const size_t m, bool &err) : ev
           }
         }
     }
-    printf("omega:\n");
-    omega.mont_repr.print();
+    //printf("omega:\n");
+    //omega.mont_repr.print();
   // for(int i=0; i<12; i++) {
   //   //std::cout << "Length of array = " << (sizeof(results[1013].non_residue.mont_repr.data)/sizeof(*results[1013].non_residue.mont_repr.data)) << std::endl;
   //   cl_uint x;
@@ -87,7 +87,7 @@ template<typename FieldT>
 void basic_radix2_domain<FieldT>::iFFT(std::vector<FieldT> &a)
 {
     if (a.size() != this->m) throw DomainSizeException("basic_radix2: expected a.size() == this->m");
-    printf("in iFFT function\n");
+    //printf("in iFFT function\n");
     _basic_radix2_FFT(a, omega.inverse());
 
     const FieldT sconst = FieldT(a.size()).inverse();
